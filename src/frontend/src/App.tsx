@@ -34,41 +34,98 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useGetProducts, useSubmitContactForm } from "./hooks/useQueries";
+import { useSubmitContactForm } from "./hooks/useQueries";
 
 // Fallback static products in case backend is loading
 const STATIC_PRODUCTS = [
   {
     id: 1n,
-    name: "Herbal Face Serum",
-    description: "Enriched with neem, turmeric & rosehip for radiant skin",
-    price: 799n,
+    name: "Roasted Makhana (Assorted Flavours)",
+    description:
+      "Premium lotus seeds roasted to perfection — available in a variety of exciting flavours",
+    price: 299n,
     imageUrl:
-      "https://images.unsplash.com/photo-1600180758890-6b94519a8ba4?w=400",
+      "https://images.unsplash.com/photo-1606756790138-261d2b21cd75?w=400",
   },
   {
     id: 2n,
-    name: "Natural Face Wash",
-    description: "Gentle cleansing with aloe vera & green tea extracts",
-    price: 499n,
+    name: "Raw Makhana",
+    description:
+      "Pure, unprocessed lotus seeds — naturally light, crispy, and nutrient-rich",
+    price: 249n,
     imageUrl:
-      "https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=400",
+      "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400",
   },
   {
     id: 3n,
-    name: "Essential Oil Blend",
-    description: "Calming blend of lavender, eucalyptus & peppermint",
-    price: 999n,
+    name: "Onion Powder",
+    description:
+      "Finely ground dehydrated onions — rich flavour for everyday cooking",
+    price: 149n,
     imageUrl:
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400",
+      "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400",
   },
   {
     id: 4n,
-    name: "Rose Hip Moisturizer",
-    description: "Deep hydration with rose hip oil & vitamin E complex",
-    price: 649n,
+    name: "Tomato Powder",
+    description:
+      "Sun-dried tomatoes ground into fine powder — vibrant taste, long shelf life",
+    price: 149n,
+    imageUrl: "https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=400",
+  },
+  {
+    id: 5n,
+    name: "Moringa Powder",
+    description:
+      "Nutrient-dense superfood powder from fresh moringa leaves — nature's multivitamin",
+    price: 199n,
     imageUrl:
-      "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=400",
+      "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400",
+  },
+  {
+    id: 6n,
+    name: "Ginger Powder",
+    description:
+      "Pure dry ginger ground fine — warming spice for teas, cooking, and wellness",
+    price: 129n,
+    imageUrl:
+      "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400",
+  },
+  {
+    id: 7n,
+    name: "Turmeric Powder",
+    description:
+      "High-curcumin turmeric sourced from the finest farms — bold colour and flavour",
+    price: 129n,
+    imageUrl:
+      "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400",
+  },
+  {
+    id: 8n,
+    name: "Zeera Powder",
+    description:
+      "Freshly ground cumin seeds — aromatic and earthy for authentic Indian cuisine",
+    price: 119n,
+    imageUrl:
+      "https://images.unsplash.com/photo-1599909533731-0e490d849669?w=400",
+  },
+  {
+    id: 9n,
+    name: "Methi Powder",
+    description:
+      "Pure fenugreek seed powder — slightly bitter, deeply nourishing for body and food",
+    price: 119n,
+    imageUrl:
+      "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400",
+  },
+  {
+    id: 10n,
+    name: "Mushroom Powder",
+    description:
+      "Dried and ground medicinal mushrooms — earthy umami boost with wellness benefits",
+    price: 299n,
+    imageUrl:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400",
   },
 ];
 
@@ -80,6 +137,85 @@ type CartItem = {
   quantity: number;
 };
 
+const FOUNDERS = [
+  {
+    initials: "KN",
+    name: "Kumaar Nityanand",
+    title: "Co-Founder & Director",
+    experience: "15+ Years",
+    expertise: [
+      {
+        area: "Production & Manufacturing Excellence",
+        detail:
+          "Spearheads end-to-end product manufacturing with a focus on quality, efficiency, and scalability. Deep expertise in formulation development, production planning, and lean operations.",
+      },
+      {
+        area: "Financial Strategy & Management",
+        detail:
+          "Proven track record in steering financial health through disciplined budgeting, cost optimization, and long-term investment strategies that fuel sustainable growth.",
+      },
+      {
+        area: "Team Building & Leadership",
+        detail:
+          "Built and led cross-functional teams across manufacturing, operations, and management. Passionate about cultivating high-performance cultures driven by purpose and accountability.",
+      },
+      {
+        area: "Supply Chain & Operations",
+        detail:
+          "Oversees complex supply chain ecosystems—from raw material sourcing to last-mile delivery—ensuring seamless operations and resilient vendor partnerships.",
+      },
+      {
+        area: "Business Development & Growth Strategy",
+        detail:
+          "Conceptualized and executed market expansion plans, forging key industry alliances and driving revenue growth across multiple product verticals.",
+      },
+      {
+        area: "Quality Assurance & Compliance",
+        detail:
+          "Enforces rigorous quality benchmarks and regulatory compliance frameworks, ensuring every Riveda product meets the highest standards of safety and efficacy.",
+      },
+    ],
+  },
+  {
+    initials: "MMK",
+    name: "Mohit Manil Karki",
+    title: "Co-Founder & Director",
+    experience: "10+ Years",
+    expertise: [
+      {
+        area: "Finance & Investment Planning",
+        detail:
+          "Drives strategic capital allocation, investor relations, and financial modeling to ensure long-term fiscal resilience and optimal return on investment.",
+      },
+      {
+        area: "Brand Strategy & Marketing",
+        detail:
+          "Crafts compelling brand narratives and integrated marketing campaigns that establish Riveda Naturals as a premium, trusted name in natural wellness.",
+      },
+      {
+        area: "Team Management & HR",
+        detail:
+          "Champions talent acquisition, employee development, and organizational design—creating workplaces where people thrive and innovation flourishes.",
+      },
+      {
+        area: "Product Development & Innovation",
+        detail:
+          "Leads new product ideation and launch cycles, blending consumer insights with cutting-edge natural formulation science to introduce market-defining offerings.",
+      },
+      {
+        area: "Customer Relations & Business Partnerships",
+        detail:
+          "Nurtures high-value customer relationships and strategic business partnerships that expand reach, deepen loyalty, and accelerate brand equity.",
+      },
+      {
+        area: "Digital Growth & E-Commerce",
+        detail:
+          "Architects the brand's digital growth strategy—from performance marketing and SEO to D2C e-commerce platforms—scaling online revenue with precision.",
+      },
+    ],
+  },
+];
+
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -89,13 +225,9 @@ export default function App() {
   const [contactMessage, setContactMessage] = useState("");
   const [contactSuccess, setContactSuccess] = useState(false);
 
-  const { data: backendProducts } = useGetProducts();
   const submitContact = useSubmitContactForm();
 
-  const products =
-    backendProducts && backendProducts.length > 0
-      ? backendProducts
-      : STATIC_PRODUCTS;
+  const products = STATIC_PRODUCTS;
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce(
@@ -172,11 +304,12 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-forest shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Leaf className="w-6 h-6 text-gold" />
-            <span className="font-playfair text-xl text-gold tracking-wide">
-              Riveda Naturals
-            </span>
+          <div className="flex items-center">
+            <img
+              src="/assets/generated/riveda-logo-transparent.dim_600x200.png"
+              alt="Riveda Naturals"
+              className="h-10 w-auto"
+            />
           </div>
 
           {/* Nav */}
@@ -198,7 +331,7 @@ export default function App() {
               className="text-cream text-sm hover:text-gold transition-colors"
               data-ocid="nav.skincare.link"
             >
-              Skincare
+              Products
             </button>
             <button
               type="button"
@@ -207,6 +340,14 @@ export default function App() {
               data-ocid="nav.about.link"
             >
               About
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollTo("founders")}
+              className="text-cream text-sm hover:text-gold transition-colors"
+              data-ocid="nav.founders.link"
+            >
+              Founders
             </button>
             <button
               type="button"
@@ -363,7 +504,7 @@ export default function App() {
             >
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src="/assets/generated/hero-skincare.dim_800x600.jpg"
+                  src="/assets/generated/hero-makhana-products.dim_800x600.jpg"
                   alt="Riveda Naturals lifestyle"
                   className="w-full h-[500px] object-cover"
                 />
@@ -442,7 +583,7 @@ export default function App() {
           </motion.div>
 
           <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             data-ocid="products.list"
           >
             {products.map((product, i) => (
@@ -497,7 +638,7 @@ export default function App() {
       </section>
 
       {/* ── THE RIVEDA PROMISE ── */}
-      <section className="bg-forest py-20">
+      <section className="bg-[oklch(var(--sage-light))] py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -506,7 +647,7 @@ export default function App() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h2 className="font-playfair text-4xl text-gold uppercase">
+            <h2 className="font-playfair text-4xl text-forest uppercase">
               The Riveda Promise
             </h2>
             <div className="w-16 h-0.5 bg-gold mx-auto mt-4" />
@@ -539,13 +680,13 @@ export default function App() {
                 className="flex flex-col items-center text-center gap-4"
                 data-ocid={`promise.item.${i + 1}`}
               >
-                <div className="w-20 h-20 rounded-full border-2 border-gold flex items-center justify-center text-gold bg-forest/50">
+                <div className="w-20 h-20 rounded-full border-2 border-forest flex items-center justify-center text-forest bg-white/60">
                   {item.icon}
                 </div>
-                <h3 className="font-playfair text-gold text-xl uppercase">
+                <h3 className="font-playfair text-forest text-xl uppercase">
                   {item.title}
                 </h3>
-                <p className="text-cream/75 text-sm max-w-xs">{item.desc}</p>
+                <p className="text-forest/70 text-sm max-w-xs">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -598,7 +739,7 @@ export default function App() {
                 well-being—inside and out.
               </p>
               <p className="text-dark-green/80 leading-relaxed">
-                From skincare to wellness essentials, everything we offer is
+                From makhana snacks to wellness powders, everything we offer is
                 inspired by nature and backed by care. We're committed to using
                 clean, high-quality ingredients, free from harsh chemicals and
                 artificial additives.
@@ -617,8 +758,107 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── MEET OUR CO-FOUNDERS ── */}
+      <section id="founders" className="bg-forest py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <p className="text-gold text-sm uppercase tracking-[0.35em] mb-3 font-medium">
+              Leadership
+            </p>
+            <h2 className="font-playfair text-4xl sm:text-5xl text-gold uppercase">
+              Meet Our Co-Founders
+            </h2>
+            <div className="w-16 h-0.5 bg-gold mx-auto mt-5" />
+            <p className="text-cream/70 mt-6 max-w-xl mx-auto text-sm leading-relaxed">
+              Behind Riveda Naturals is a leadership duo combining decades of
+              industry excellence—guiding the brand with passion, purpose, and
+              proven expertise.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            {FOUNDERS.map((founder, fi) => (
+              <motion.div
+                key={founder.name}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, delay: fi * 0.15 }}
+                className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-gold/30"
+                data-ocid={`founders.item.${fi + 1}`}
+              >
+                {/* Card header band */}
+                <div className="bg-gradient-to-r from-forest to-dark-green px-8 pt-10 pb-6 flex flex-col items-center text-center relative">
+                  {/* Decorative corner lines */}
+                  <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-gold/40 rounded-tl-lg" />
+                  <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-gold/40 rounded-tr-lg" />
+
+                  {/* Avatar */}
+                  <div className="w-24 h-24 rounded-full border-4 border-gold bg-gold flex items-center justify-center shadow-lg mb-4">
+                    <span className="font-playfair text-forest text-2xl font-bold tracking-wide">
+                      {founder.initials}
+                    </span>
+                  </div>
+
+                  <h3 className="font-playfair text-2xl text-gold">
+                    {founder.name}
+                  </h3>
+                  <p className="text-cream/70 text-sm mt-1 uppercase tracking-widest">
+                    {founder.title}
+                  </p>
+
+                  {/* Experience badge */}
+                  <div className="mt-4 inline-flex items-center gap-2 bg-gold/20 border border-gold/40 text-gold text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full">
+                    <Star className="w-3 h-3" />
+                    {founder.experience} Experience
+                  </div>
+                </div>
+
+                {/* Expertise list */}
+                <div className="px-8 py-8 space-y-5">
+                  <p className="text-forest/50 text-xs uppercase tracking-widest font-semibold border-b border-gold/20 pb-3">
+                    Areas of Expertise
+                  </p>
+                  {founder.expertise.map((exp, ei) => (
+                    <motion.div
+                      key={exp.area}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{
+                        duration: 0.4,
+                        delay: fi * 0.1 + ei * 0.06,
+                      }}
+                      className="flex gap-3"
+                    >
+                      <div className="mt-1 w-5 h-5 rounded-full bg-gold/15 border border-gold/40 flex items-center justify-center shrink-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gold" />
+                      </div>
+                      <div>
+                        <p className="text-forest font-semibold text-sm font-playfair">
+                          {exp.area}
+                        </p>
+                        <p className="text-dark-green/65 text-xs mt-0.5 leading-relaxed">
+                          {exp.detail}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CONTACT ── */}
-      <section id="contact" className="bg-forest py-20">
+      <section id="contact" className="bg-[oklch(var(--sage-light))] py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -627,7 +867,7 @@ export default function App() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h2 className="font-playfair text-4xl text-gold uppercase">
+            <h2 className="font-playfair text-4xl text-forest uppercase">
               Get in Touch
             </h2>
             <div className="w-16 h-0.5 bg-gold mx-auto mt-4" />
@@ -653,10 +893,10 @@ export default function App() {
                     <div className="w-16 h-16 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center">
                       <Mail className="w-8 h-8 text-gold" />
                     </div>
-                    <h3 className="font-playfair text-2xl text-gold">
+                    <h3 className="font-playfair text-2xl text-forest">
                       Message Sent!
                     </h3>
-                    <p className="text-cream/70 text-center">
+                    <p className="text-forest/70 text-center">
                       Thank you for reaching out. We'll get back to you shortly.
                     </p>
                     <Button
@@ -682,7 +922,7 @@ export default function App() {
                         value={contactName}
                         onChange={(e) => setContactName(e.target.value)}
                         required
-                        className="bg-forest border border-gold/40 text-cream placeholder:text-cream/40 focus:border-gold rounded-lg"
+                        className="bg-white border border-gold/50 text-forest placeholder:text-forest/40 focus:border-gold rounded-lg"
                         data-ocid="contact.input"
                       />
                     </div>
@@ -693,7 +933,7 @@ export default function App() {
                         value={contactEmail}
                         onChange={(e) => setContactEmail(e.target.value)}
                         required
-                        className="bg-forest border border-gold/40 text-cream placeholder:text-cream/40 focus:border-gold rounded-lg"
+                        className="bg-white border border-gold/50 text-forest placeholder:text-forest/40 focus:border-gold rounded-lg"
                         data-ocid="contact.search_input"
                       />
                     </div>
@@ -704,7 +944,7 @@ export default function App() {
                         onChange={(e) => setContactMessage(e.target.value)}
                         required
                         rows={5}
-                        className="bg-forest border border-gold/40 text-cream placeholder:text-cream/40 focus:border-gold rounded-lg resize-none"
+                        className="bg-white border border-gold/50 text-forest placeholder:text-forest/40 focus:border-gold rounded-lg resize-none"
                         data-ocid="contact.textarea"
                       />
                     </div>
@@ -724,33 +964,32 @@ export default function App() {
             {/* Contact Info */}
             <motion.div
               initial={{ opacity: 0, x: 40 }}
-              whileInView={{ opacity: 1, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, delay: 0.1 }}
               className="space-y-6"
             >
               <div className="space-y-4">
-                <h3 className="font-playfair text-2xl text-gold">
+                <h3 className="font-playfair text-2xl text-forest">
                   Contact Information
                 </h3>
-                <div className="flex items-start gap-3 text-cream/80">
+                <div className="flex items-start gap-3 text-forest/80">
                   <Phone className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                  <span>+91 99999 99999</span>
+                  <span>+91 78308 08000 / +91 98083 01011</span>
                 </div>
-                <div className="flex items-start gap-3 text-cream/80">
+                <div className="flex items-start gap-3 text-forest/80">
                   <Mail className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                  <span>hello@rivedan.in</span>
+                  <span>hello@rivedanaturals.com</span>
                 </div>
-                <div className="flex items-start gap-3 text-cream/80">
+                <div className="flex items-start gap-3 text-forest/80">
                   <MapPin className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                  <span>Mumbai, Maharashtra, India</span>
+                  <span>Noida, Uttar Pradesh, India</span>
                 </div>
               </div>
 
               {/* WhatsApp CTA */}
               <a
-                href="https://wa.me/919999999999"
+                href="https://wa.me/917830808000"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-gold text-dark-green font-semibold rounded-xl px-6 py-4 hover:bg-gold-light transition-all group shadow-lg"
@@ -767,14 +1006,14 @@ export default function App() {
                 </div>
               </a>
 
-              <div className="bg-forest/60 border border-gold/20 rounded-xl p-5">
-                <p className="text-gold font-playfair text-lg mb-2">
+              <div className="bg-white border border-gold/30 rounded-xl p-5">
+                <p className="text-forest font-playfair text-lg mb-2">
                   Business Hours
                 </p>
-                <p className="text-cream/70 text-sm">
+                <p className="text-forest/70 text-sm">
                   Monday – Saturday: 9:00 AM – 6:00 PM
                 </p>
-                <p className="text-cream/70 text-sm">Sunday: Closed</p>
+                <p className="text-forest/70 text-sm">Sunday: Closed</p>
               </div>
             </motion.div>
           </div>
@@ -787,11 +1026,12 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             {/* Brand */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Leaf className="w-5 h-5 text-gold" />
-                <span className="font-playfair text-lg text-gold">
-                  Riveda Naturals
-                </span>
+              <div className="flex items-center">
+                <img
+                  src="/assets/generated/riveda-logo-transparent.dim_600x200.png"
+                  alt="Riveda Naturals"
+                  className="h-8 w-auto"
+                />
               </div>
               <p className="text-cream/60 text-sm leading-relaxed">
                 Trust in nature. Choose Riveda.
@@ -804,21 +1044,23 @@ export default function App() {
                 Quick Links
               </h4>
               <div className="space-y-2">
-                {["Home", "Products", "About", "Contact"].map((link) => (
-                  <button
-                    type="button"
-                    key={link}
-                    onClick={() =>
-                      scrollTo(
-                        link === "Products" ? "products" : link.toLowerCase(),
-                      )
-                    }
-                    className="block text-cream/60 hover:text-gold text-sm transition-colors"
-                    data-ocid={`footer.${link.toLowerCase()}.link`}
-                  >
-                    {link}
-                  </button>
-                ))}
+                {["Home", "Products", "About", "Founders", "Contact"].map(
+                  (link) => (
+                    <button
+                      type="button"
+                      key={link}
+                      onClick={() =>
+                        scrollTo(
+                          link === "Products" ? "products" : link.toLowerCase(),
+                        )
+                      }
+                      className="block text-cream/60 hover:text-gold text-sm transition-colors"
+                      data-ocid={`footer.${link.toLowerCase()}.link`}
+                    >
+                      {link}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 

@@ -16,17 +16,19 @@
     /* gold hover slightly lighter */
     --gold-light: 0.78 0.075 72;
     /* warm off-white/sand #F3EDE0 */
-    --sand: 0.944 0.018 80;
+    --sand: 0.97 0.008 80;
     /* creamy off-white #F2EBDD */
     --cream: 0.942 0.018 78;
     /* near-black green #1B2A23 */
     --dark-green: 0.19 0.04 162;
     /* subdued gold-beige #BFA77D */
     --gold-border: 0.69 0.065 72;
+    /* soft sage light #EEF3EF */
+    --sage-light: 0.96 0.012 155;
 
-    --background: 0.944 0.018 80;
+    --background: 0.97 0.008 80;
     --foreground: 0.19 0.04 162;
-    --card: 0.944 0.018 80;
+    --card: 1 0 0;
     --card-foreground: 0.19 0.04 162;
     --popover: 1 0 0;
     --popover-foreground: 0.19 0.04 162;
@@ -34,14 +36,14 @@
     --primary-foreground: 0.942 0.018 78;
     --secondary: 0.72 0.082 72;
     --secondary-foreground: 0.19 0.04 162;
-    --muted: 0.9 0.012 80;
+    --muted: 0.95 0.008 80;
     --muted-foreground: 0.5 0.03 162;
     --accent: 0.72 0.082 72;
     --accent-foreground: 0.19 0.04 162;
     --destructive: 0.577 0.245 27.325;
     --destructive-foreground: 0.985 0 0;
     --border: 0.69 0.065 72;
-    --input: 0.85 0.015 80;
+    --input: 0.92 0.01 80;
     --ring: 0.72 0.082 72;
     --chart-1: 0.646 0.222 41.116;
     --chart-2: 0.6 0.118 184.704;
