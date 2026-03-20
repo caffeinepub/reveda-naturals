@@ -17,6 +17,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Coffee,
   Heart,
   Leaf,
   Mail,
@@ -36,6 +37,19 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useSubmitContactForm } from "./hooks/useQueries";
 
+// Pack size options with price multipliers
+const PACK_SIZES: Record<string, number> = {
+  "100g": 1,
+  "250g": 2.2,
+  "500g": 4,
+};
+
+function getPackPrice(basePrice: bigint, size: string): number {
+  const multiplier = PACK_SIZES[size] ?? 1;
+  const raw = Number(basePrice) * multiplier;
+  return Math.round(raw / 5) * 5;
+}
+
 // Fallback static products in case backend is loading
 const STATIC_PRODUCTS = [
   {
@@ -44,7 +58,7 @@ const STATIC_PRODUCTS = [
     description:
       "Premium lotus seeds roasted to perfection — available in a variety of exciting flavours",
     price: 299n,
-    imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+    imageUrl: "/assets/generated/roasted-makhana.dim_400x400.jpg",
   },
   {
     id: 2n,
@@ -52,8 +66,7 @@ const STATIC_PRODUCTS = [
     description:
       "Pure, unprocessed lotus seeds — naturally light, crispy, and nutrient-rich",
     price: 249n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400",
+    imageUrl: "/assets/generated/raw-makhana.dim_400x400.jpg",
   },
   {
     id: 3n,
@@ -61,8 +74,7 @@ const STATIC_PRODUCTS = [
     description:
       "Finely ground dehydrated onions — rich flavour for everyday cooking",
     price: 149n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400",
+    imageUrl: "/assets/generated/onion-powder.dim_400x400.jpg",
   },
   {
     id: 4n,
@@ -70,7 +82,7 @@ const STATIC_PRODUCTS = [
     description:
       "Sun-dried tomatoes ground into fine powder — vibrant taste, long shelf life",
     price: 149n,
-    imageUrl: "https://images.unsplash.com/photo-1550828520-4cb496926fc9?w=400",
+    imageUrl: "/assets/generated/tomato-powder.dim_400x400.jpg",
   },
   {
     id: 5n,
@@ -78,8 +90,7 @@ const STATIC_PRODUCTS = [
     description:
       "Nutrient-dense superfood powder from fresh moringa leaves — nature's multivitamin",
     price: 199n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400",
+    imageUrl: "/assets/generated/moringa-powder.dim_400x400.jpg",
   },
   {
     id: 6n,
@@ -87,8 +98,7 @@ const STATIC_PRODUCTS = [
     description:
       "Pure dry ginger ground fine — warming spice for teas, cooking, and wellness",
     price: 129n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400",
+    imageUrl: "/assets/generated/ginger-powder.dim_400x400.jpg",
   },
   {
     id: 7n,
@@ -96,8 +106,7 @@ const STATIC_PRODUCTS = [
     description:
       "High-curcumin turmeric sourced from the finest farms — bold colour and flavour",
     price: 129n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400",
+    imageUrl: "/assets/generated/turmeric-powder.dim_400x400.jpg",
   },
   {
     id: 8n,
@@ -105,8 +114,7 @@ const STATIC_PRODUCTS = [
     description:
       "Freshly ground cumin seeds — aromatic and earthy for authentic Indian cuisine",
     price: 119n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1599909533731-0e490d849669?w=400",
+    imageUrl: "/assets/generated/zeera-powder.dim_400x400.jpg",
   },
   {
     id: 9n,
@@ -114,8 +122,7 @@ const STATIC_PRODUCTS = [
     description:
       "Pure fenugreek seed powder — slightly bitter, deeply nourishing for body and food",
     price: 119n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400",
+    imageUrl: "/assets/generated/methi-powder.dim_400x400.jpg",
   },
   {
     id: 10n,
@@ -123,15 +130,15 @@ const STATIC_PRODUCTS = [
     description:
       "Dried and ground medicinal mushrooms — earthy umami boost with wellness benefits",
     price: 299n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400",
+    imageUrl: "/assets/generated/mushroom-powder.dim_400x400.jpg",
   },
 ];
 
 type CartItem = {
+  cartKey: string;
   id: bigint;
   name: string;
-  price: bigint;
+  price: number;
   imageUrl: string;
   quantity: number;
 };
@@ -223,6 +230,13 @@ export default function App() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
   const [contactSuccess, setContactSuccess] = useState(false);
+  const [cafeEmail, setCafeEmail] = useState("");
+
+  // Pack size selection per product (keyed by product id string)
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>(
+    () =>
+      Object.fromEntries(STATIC_PRODUCTS.map((p) => [p.id.toString(), "100g"])),
+  );
 
   const submitContact = useSubmitContactForm();
 
@@ -230,44 +244,52 @@ export default function App() {
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity,
+    (sum, item) => sum + item.price * item.quantity,
     0,
   );
 
   function addToCart(product: (typeof STATIC_PRODUCTS)[0]) {
+    const size = selectedSizes[product.id.toString()] ?? "100g";
+    const computedPrice = getPackPrice(product.price, size);
+    const displayName = `${product.name} (${size})`;
+    const cartKey = `${product.id.toString()}-${size}`;
+
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+      const existing = prev.find((i) => i.cartKey === cartKey);
       if (existing) {
         return prev.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
+          i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1 } : i,
         );
       }
       return [
         ...prev,
         {
+          cartKey,
           id: product.id,
-          name: product.name,
-          price: product.price,
+          name: displayName,
+          price: computedPrice,
           imageUrl: product.imageUrl,
           quantity: 1,
         },
       ];
     });
-    toast.success(`${product.name} added to cart!`, {
-      description: `₹${product.price}`,
+    toast.success(`${displayName} added to cart!`, {
+      description: `₹${computedPrice}`,
     });
   }
 
-  function updateQty(id: bigint, delta: number) {
+  function updateQty(cartKey: string, delta: number) {
     setCartItems((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
+        .map((i) =>
+          i.cartKey === cartKey ? { ...i, quantity: i.quantity + delta } : i,
+        )
         .filter((i) => i.quantity > 0),
     );
   }
 
-  function removeFromCart(id: bigint) {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
+  function removeFromCart(cartKey: string) {
+    setCartItems((prev) => prev.filter((i) => i.cartKey !== cartKey));
   }
 
   async function handleContactSubmit(e: React.FormEvent) {
@@ -289,6 +311,14 @@ export default function App() {
       setContactEmail("");
       setContactMessage("");
     }
+  }
+
+  function handleCafeNotify(e: React.FormEvent) {
+    e.preventDefault();
+    setCafeEmail("");
+    toast.success("We'll keep you posted!", {
+      description: "You're on the list for Riveda Cafe updates.",
+    });
   }
 
   function scrollTo(id: string) {
@@ -359,6 +389,15 @@ export default function App() {
             >
               Contact
             </button>
+            <button
+              type="button"
+              onClick={() => scrollTo("coming-soon")}
+              className="text-gold text-sm hover:text-gold/80 transition-colors flex items-center gap-1.5 border border-gold/40 rounded-full px-3 py-1"
+              data-ocid="nav.cafe.link"
+            >
+              <Coffee className="w-3.5 h-3.5" />
+              Cafe
+            </button>
           </nav>
 
           {/* Icons */}
@@ -416,7 +455,7 @@ export default function App() {
                       <AnimatePresence>
                         {cartItems.map((item, i) => (
                           <motion.div
-                            key={item.id.toString()}
+                            key={item.cartKey}
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
@@ -429,24 +468,24 @@ export default function App() {
                               className="w-14 h-14 rounded object-cover"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
+                              <p className="text-sm font-medium truncate text-cream">
                                 {item.name}
                               </p>
-                              <p className="text-gold text-sm">
-                                ₹{Number(item.price)}
-                              </p>
+                              <p className="text-gold text-sm">₹{item.price}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <button
                                   type="button"
-                                  onClick={() => updateQty(item.id, -1)}
+                                  onClick={() => updateQty(item.cartKey, -1)}
                                   className="w-5 h-5 rounded-full border border-gold/40 flex items-center justify-center hover:bg-gold/10"
                                 >
                                   <Minus className="w-3 h-3" />
                                 </button>
-                                <span className="text-xs">{item.quantity}</span>
+                                <span className="text-xs text-cream">
+                                  {item.quantity}
+                                </span>
                                 <button
                                   type="button"
-                                  onClick={() => updateQty(item.id, 1)}
+                                  onClick={() => updateQty(item.cartKey, 1)}
                                   className="w-5 h-5 rounded-full border border-gold/40 flex items-center justify-center hover:bg-gold/10"
                                 >
                                   <Plus className="w-3 h-3" />
@@ -455,7 +494,7 @@ export default function App() {
                             </div>
                             <button
                               type="button"
-                              onClick={() => removeFromCart(item.id)}
+                              onClick={() => removeFromCart(item.cartKey)}
                               className="text-cream/40 hover:text-cream transition-colors"
                               data-ocid={`cart.delete_button.${i + 1}`}
                             >
@@ -588,53 +627,84 @@ export default function App() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             data-ocid="products.list"
           >
-            {products.map((product, i) => (
-              <motion.div
-                key={product.id.toString()}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-xl transition-all hover:-translate-y-1 group"
-                data-ocid={`products.item.${i + 1}`}
-              >
-                <div className="relative overflow-hidden h-56">
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-forest/0 group-hover:bg-forest/10 transition-colors" />
-                </div>
-                <div className="p-5">
-                  <h3 className="font-playfair text-lg text-forest font-semibold">
-                    {product.name}
-                  </h3>
-                  <p className="text-dark-green/60 text-xs mt-1 line-clamp-2">
-                    {product.description}
-                  </p>
-                  <p className="text-forest font-bold text-xl mt-3">
-                    ₹{Number(product.price)}
-                  </p>
-                  <div className="mt-4 space-y-2">
-                    <Button
-                      onClick={() => addToCart(product)}
-                      className="w-full bg-forest text-cream hover:bg-forest/90 uppercase tracking-wider text-xs font-semibold rounded-full py-2"
-                      data-ocid={`products.toggle.${i + 1}`}
-                    >
-                      Add to Cart
-                    </Button>
-                    <Button
-                      onClick={() => setBuyNowOpen(true)}
-                      className="w-full bg-gold text-dark-green hover:bg-gold-light uppercase tracking-wider text-xs font-semibold rounded-full py-2"
-                      data-ocid={`products.primary_button.${i + 1}`}
-                    >
-                      Buy Now
-                    </Button>
+            {products.map((product, i) => {
+              const idStr = product.id.toString();
+              const selectedSize = selectedSizes[idStr] ?? "100g";
+              const displayPrice = getPackPrice(product.price, selectedSize);
+
+              return (
+                <motion.div
+                  key={idStr}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-xl transition-all hover:-translate-y-1 group"
+                  data-ocid={`products.item.${i + 1}`}
+                >
+                  <div className="relative overflow-hidden h-56">
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-forest/0 group-hover:bg-forest/10 transition-colors" />
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="p-5">
+                    <h3 className="font-playfair text-lg text-forest font-semibold">
+                      {product.name}
+                    </h3>
+                    <p className="text-dark-green/60 text-xs mt-1 line-clamp-2">
+                      {product.description}
+                    </p>
+
+                    {/* Pack size selector */}
+                    <div className="flex gap-1.5 mt-3">
+                      {Object.keys(PACK_SIZES).map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() =>
+                            setSelectedSizes((prev) => ({
+                              ...prev,
+                              [idStr]: size,
+                            }))
+                          }
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                            selectedSize === size
+                              ? "bg-forest text-cream border-forest"
+                              : "bg-white text-forest border border-gold/50 hover:border-gold"
+                          }`}
+                          data-ocid={`products.toggle.${i + 1}`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="text-forest font-bold text-xl mt-3">
+                      ₹{displayPrice}
+                    </p>
+                    <div className="mt-4 space-y-2">
+                      <Button
+                        onClick={() => addToCart(product)}
+                        className="w-full bg-forest text-cream hover:bg-forest/90 uppercase tracking-wider text-xs font-semibold rounded-full py-2"
+                        data-ocid={`products.primary_button.${i + 1}`}
+                      >
+                        Add to Cart
+                      </Button>
+                      <Button
+                        onClick={() => setBuyNowOpen(true)}
+                        className="w-full bg-gold text-dark-green hover:bg-gold-light uppercase tracking-wider text-xs font-semibold rounded-full py-2"
+                        data-ocid={`products.secondary_button.${i + 1}`}
+                      >
+                        Buy Now
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -824,7 +894,7 @@ export default function App() {
 
                 {/* Expertise list */}
                 <div className="px-8 py-8 space-y-5">
-                  <p className="text-forest/50 text-xs uppercase tracking-widest font-semibold border-b border-gold/20 pb-3">
+                  <p className="text-forest text-xs uppercase tracking-widest font-semibold border-b border-gold/20 pb-3">
                     Areas of Expertise
                   </p>
                   {founder.expertise.map((exp, ei) => (
@@ -846,7 +916,7 @@ export default function App() {
                         <p className="text-forest font-semibold text-sm font-playfair">
                           {exp.area}
                         </p>
-                        <p className="text-dark-green/65 text-xs mt-0.5 leading-relaxed">
+                        <p className="text-dark-green/80 text-xs mt-0.5 leading-relaxed">
                           {exp.detail}
                         </p>
                       </div>
@@ -1022,6 +1092,106 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── RIVEDA CAFE — COMING SOON ── */}
+      <section
+        id="coming-soon"
+        className="bg-forest py-24 relative overflow-hidden"
+      >
+        {/* Decorative background circles */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gold/5 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-gold/5 blur-3xl pointer-events-none" />
+
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="space-y-6"
+          >
+            {/* Opening Soon badge */}
+            <div className="flex justify-center">
+              <span
+                className="inline-flex items-center gap-2 bg-gold/15 border border-gold/50 text-gold text-xs font-semibold uppercase tracking-[0.25em] px-5 py-2 rounded-full animate-pulse"
+                data-ocid="cafe.toggle"
+              >
+                <Coffee className="w-3.5 h-3.5" />
+                Opening Soon
+              </span>
+            </div>
+
+            {/* Label */}
+            <p className="text-gold/70 text-xs uppercase tracking-[0.4em] font-medium">
+              Coming Soon
+            </p>
+
+            {/* Main heading */}
+            <h2 className="font-playfair text-5xl sm:text-6xl text-gold leading-tight">
+              Riveda Cafe
+            </h2>
+
+            {/* Gold divider */}
+            <div className="flex items-center justify-center gap-4">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-gold/60" />
+              <Leaf className="w-4 h-4 text-gold/60" />
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-gold/60" />
+            </div>
+
+            {/* Teaser */}
+            <p className="text-cream/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+              A premium cafe experience rooted in nature — wholesome snacks,
+              herbal brews, and natural wellness bites. Coming soon to a
+              location near you.
+            </p>
+
+            {/* Feature pills */}
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {[
+                "Herbal Teas",
+                "Makhana Bites",
+                "Wellness Bowls",
+                "Natural Brews",
+              ].map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs text-gold/80 border border-gold/30 rounded-full px-4 py-1.5 bg-gold/5"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* Notify form */}
+            <motion.form
+              onSubmit={handleCafeNotify}
+              className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+              data-ocid="cafe.panel"
+            >
+              <Input
+                type="email"
+                placeholder="Enter your email address"
+                value={cafeEmail}
+                onChange={(e) => setCafeEmail(e.target.value)}
+                required
+                className="flex-1 bg-white/5 border border-gold/40 text-cream placeholder:text-cream/40 focus:border-gold rounded-full px-5 text-sm"
+                data-ocid="cafe.input"
+              />
+              <Button
+                type="submit"
+                className="bg-gold text-dark-green font-semibold uppercase tracking-wider rounded-full px-6 text-sm hover:bg-gold-light transition-all shrink-0"
+                data-ocid="cafe.submit_button"
+              >
+                Notify Me
+              </Button>
+            </motion.form>
+
+            <p className="text-cream/40 text-xs mt-2">
+              Be the first to know when we open our doors.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="bg-dark-green py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1046,23 +1216,32 @@ export default function App() {
                 Quick Links
               </h4>
               <div className="space-y-2">
-                {["Home", "Products", "About", "Founders", "Contact"].map(
-                  (link) => (
-                    <button
-                      type="button"
-                      key={link}
-                      onClick={() =>
-                        scrollTo(
-                          link === "Products" ? "products" : link.toLowerCase(),
-                        )
-                      }
-                      className="block text-cream/60 hover:text-gold text-sm transition-colors"
-                      data-ocid={`footer.${link.toLowerCase()}.link`}
-                    >
-                      {link}
-                    </button>
-                  ),
-                )}
+                {[
+                  "Home",
+                  "Products",
+                  "About",
+                  "Founders",
+                  "Contact",
+                  "Cafe",
+                ].map((link) => (
+                  <button
+                    type="button"
+                    key={link}
+                    onClick={() =>
+                      scrollTo(
+                        link === "Products"
+                          ? "products"
+                          : link === "Cafe"
+                            ? "coming-soon"
+                            : link.toLowerCase(),
+                      )
+                    }
+                    className="block text-cream/60 hover:text-gold text-sm transition-colors"
+                    data-ocid={`footer.${link.toLowerCase()}.link`}
+                  >
+                    {link}
+                  </button>
+                ))}
               </div>
             </div>
 
