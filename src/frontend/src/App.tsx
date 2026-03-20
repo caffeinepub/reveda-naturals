@@ -44,8 +44,7 @@ const STATIC_PRODUCTS = [
     description:
       "Premium lotus seeds roasted to perfection — available in a variety of exciting flavours",
     price: 299n,
-    imageUrl:
-      "https://images.unsplash.com/photo-1606756790138-261d2b21cd75?w=400",
+    imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
   },
   {
     id: 2n,
@@ -54,7 +53,7 @@ const STATIC_PRODUCTS = [
       "Pure, unprocessed lotus seeds — naturally light, crispy, and nutrient-rich",
     price: 249n,
     imageUrl:
-      "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400",
+      "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400",
   },
   {
     id: 3n,
@@ -71,7 +70,7 @@ const STATIC_PRODUCTS = [
     description:
       "Sun-dried tomatoes ground into fine powder — vibrant taste, long shelf life",
     price: 149n,
-    imageUrl: "https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=400",
+    imageUrl: "https://images.unsplash.com/photo-1550828520-4cb496926fc9?w=400",
   },
   {
     id: 5n,
@@ -80,7 +79,7 @@ const STATIC_PRODUCTS = [
       "Nutrient-dense superfood powder from fresh moringa leaves — nature's multivitamin",
     price: 199n,
     imageUrl:
-      "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400",
+      "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400",
   },
   {
     id: 6n,
@@ -116,7 +115,7 @@ const STATIC_PRODUCTS = [
       "Pure fenugreek seed powder — slightly bitter, deeply nourishing for body and food",
     price: 119n,
     imageUrl:
-      "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400",
+      "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400",
   },
   {
     id: 10n,
@@ -303,13 +302,16 @@ export default function App() {
       {/* ── STICKY HEADER ── */}
       <header className="sticky top-0 z-50 bg-forest shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
+          {/* Logo + Tagline */}
+          <div className="flex flex-col items-start">
             <img
               src="/assets/generated/riveda-logo-transparent.dim_600x200.png"
               alt="Riveda Naturals"
               className="h-10 w-auto"
             />
+            <p className="hidden md:block text-gold/80 text-[10px] italic tracking-[0.2em] font-light mt-0.5 pl-0.5">
+              Rooted in Nature
+            </p>
           </div>
 
           {/* Nav */}
@@ -527,7 +529,7 @@ export default function App() {
               className="space-y-6 text-cream"
             >
               <p className="text-gold text-sm uppercase tracking-[0.3em] font-medium">
-                Premium Natural Care
+                Rooted in Nature
               </p>
               <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl text-gold leading-tight uppercase">
                 Luxury Care
@@ -751,7 +753,7 @@ export default function App() {
                 lifestyles.
               </p>
               <p className="text-dark-green font-semibold italic font-playfair text-lg">
-                "Trust in nature. Choose Riveda."
+                "Rooted in Nature."
               </p>
             </motion.div>
           </div>
@@ -1033,8 +1035,8 @@ export default function App() {
                   className="h-8 w-auto"
                 />
               </div>
-              <p className="text-cream/60 text-sm leading-relaxed">
-                Trust in nature. Choose Riveda.
+              <p className="text-gold/80 text-sm italic leading-relaxed">
+                Rooted in Nature
               </p>
             </div>
 
