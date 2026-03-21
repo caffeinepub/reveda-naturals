@@ -1,1319 +1,1661 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Toaster } from "@/components/ui/sonner";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Coffee,
-  Heart,
-  Leaf,
-  Mail,
-  MapPin,
-  MessageCircle,
-  Minus,
-  Phone,
-  Plus,
-  Search,
-  ShoppingCart,
-  Star,
-  User,
-  X,
-} from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { toast } from "sonner";
-import { useSubmitContactForm } from "./hooks/useQueries";
 
-// Pack size options with price multipliers
-const PACK_SIZES: Record<string, number> = {
-  "100g": 1,
-  "250g": 2.2,
-  "500g": 4,
-};
+/* ---------- Types ---------- */
+type PackSize = "100g" | "250g" | "500g";
 
-function getPackPrice(basePrice: bigint, size: string): number {
-  const multiplier = PACK_SIZES[size] ?? 1;
-  const raw = Number(basePrice) * multiplier;
-  return Math.round(raw / 5) * 5;
+interface Product {
+  id: number;
+  name: string;
+  prices: Record<PackSize, number>;
+  image: string;
+  badge?: string;
 }
 
-// Fallback static products in case backend is loading
-const STATIC_PRODUCTS = [
+interface CartItem {
+  product: Product;
+  pack: PackSize;
+  qty: number;
+}
+
+/* ---------- Data ---------- */
+const PRODUCTS: Product[] = [
   {
-    id: 1n,
-    name: "Roasted Makhana (Assorted Flavours)",
-    description:
-      "Premium lotus seeds roasted to perfection — available in a variety of exciting flavours",
-    price: 299n,
-    imageUrl: "/assets/generated/roasted-makhana.dim_400x400.jpg",
+    id: 1,
+    name: "Roasted Makhana",
+    prices: { "100g": 149, "250g": 349, "500g": 649 },
+    image: "/assets/generated/roasted-makhana.dim_400x400.jpg",
+    badge: "Bestseller",
   },
   {
-    id: 2n,
+    id: 2,
     name: "Raw Makhana",
-    description:
-      "Pure, unprocessed lotus seeds — naturally light, crispy, and nutrient-rich",
-    price: 249n,
-    imageUrl: "/assets/generated/raw-makhana.dim_400x400.jpg",
+    prices: { "100g": 129, "250g": 299, "500g": 579 },
+    image: "/assets/generated/raw-makhana.dim_400x400.jpg",
   },
   {
-    id: 3n,
+    id: 3,
     name: "Onion Powder",
-    description:
-      "Finely ground dehydrated onions — rich flavour for everyday cooking",
-    price: 149n,
-    imageUrl: "/assets/generated/onion-powder.dim_400x400.jpg",
+    prices: { "100g": 89, "250g": 199, "500g": 379 },
+    image: "/assets/generated/onion-powder.dim_400x400.jpg",
   },
   {
-    id: 4n,
+    id: 4,
     name: "Tomato Powder",
-    description:
-      "Sun-dried tomatoes ground into fine powder — vibrant taste, long shelf life",
-    price: 149n,
-    imageUrl: "/assets/generated/tomato-powder.dim_400x400.jpg",
+    prices: { "100g": 99, "250g": 219, "500g": 409 },
+    image: "/assets/generated/tomato-powder.dim_400x400.jpg",
   },
   {
-    id: 5n,
+    id: 5,
     name: "Moringa Powder",
-    description:
-      "Nutrient-dense superfood powder from fresh moringa leaves — nature's multivitamin",
-    price: 199n,
-    imageUrl: "/assets/generated/moringa-powder.dim_400x400.jpg",
+    prices: { "100g": 119, "250g": 269, "500g": 499 },
+    image: "/assets/generated/moringa-powder.dim_400x400.jpg",
+    badge: "New",
   },
   {
-    id: 6n,
+    id: 6,
     name: "Ginger Powder",
-    description:
-      "Pure dry ginger ground fine — warming spice for teas, cooking, and wellness",
-    price: 129n,
-    imageUrl: "/assets/generated/ginger-powder.dim_400x400.jpg",
+    prices: { "100g": 79, "250g": 179, "500g": 339 },
+    image: "/assets/generated/ginger-powder.dim_400x400.jpg",
   },
   {
-    id: 7n,
+    id: 7,
     name: "Turmeric Powder",
-    description:
-      "High-curcumin turmeric sourced from the finest farms — bold colour and flavour",
-    price: 129n,
-    imageUrl: "/assets/generated/turmeric-powder.dim_400x400.jpg",
+    prices: { "100g": 69, "250g": 159, "500g": 299 },
+    image: "/assets/generated/turmeric-powder.dim_400x400.jpg",
+    badge: "Pure",
   },
   {
-    id: 8n,
+    id: 8,
     name: "Zeera Powder",
-    description:
-      "Freshly ground cumin seeds — aromatic and earthy for authentic Indian cuisine",
-    price: 119n,
-    imageUrl: "/assets/generated/zeera-powder.dim_400x400.jpg",
+    prices: { "100g": 89, "250g": 199, "500g": 379 },
+    image: "/assets/generated/zeera-powder.dim_400x400.jpg",
   },
   {
-    id: 9n,
+    id: 9,
     name: "Methi Powder",
-    description:
-      "Pure fenugreek seed powder — slightly bitter, deeply nourishing for body and food",
-    price: 119n,
-    imageUrl: "/assets/generated/methi-powder.dim_400x400.jpg",
+    prices: { "100g": 79, "250g": 179, "500g": 339 },
+    image: "/assets/generated/methi-powder.dim_400x400.jpg",
   },
   {
-    id: 10n,
-    name: "Mushroom Powder",
-    description:
-      "Dried and ground medicinal mushrooms — earthy umami boost with wellness benefits",
-    price: 299n,
-    imageUrl: "/assets/generated/mushroom-powder.dim_400x400.jpg",
+    id: 10,
+    name: "Mushroom",
+    prices: { "100g": 149, "250g": 349, "500g": 649 },
+    image: "/assets/generated/mushroom-powder.dim_400x400.jpg",
+    badge: "Premium",
   },
 ];
 
-type CartItem = {
-  cartKey: string;
-  id: bigint;
-  name: string;
-  price: number;
-  imageUrl: string;
-  quantity: number;
-};
+const PACK_SIZES: PackSize[] = ["100g", "250g", "500g"];
 
-const FOUNDERS = [
+const REVIEWS = [
   {
-    initials: "KN",
-    name: "Kumaar Nityanand",
-    title: "Co-Founder & Director",
-    experience: "15+ Years",
-    expertise: [
-      {
-        area: "Production & Manufacturing Excellence",
-        detail:
-          "Spearheads end-to-end product manufacturing with a focus on quality, efficiency, and scalability. Deep expertise in formulation development, production planning, and lean operations.",
-      },
-      {
-        area: "Financial Strategy & Management",
-        detail:
-          "Proven track record in steering financial health through disciplined budgeting, cost optimization, and long-term investment strategies that fuel sustainable growth.",
-      },
-      {
-        area: "Team Building & Leadership",
-        detail:
-          "Built and led cross-functional teams across manufacturing, operations, and management. Passionate about cultivating high-performance cultures driven by purpose and accountability.",
-      },
-      {
-        area: "Supply Chain & Operations",
-        detail:
-          "Oversees complex supply chain ecosystems—from raw material sourcing to last-mile delivery—ensuring seamless operations and resilient vendor partnerships.",
-      },
-      {
-        area: "Business Development & Growth Strategy",
-        detail:
-          "Conceptualized and executed market expansion plans, forging key industry alliances and driving revenue growth across multiple product verticals.",
-      },
-      {
-        area: "Quality Assurance & Compliance",
-        detail:
-          "Enforces rigorous quality benchmarks and regulatory compliance frameworks, ensuring every Riveda product meets the highest standards of safety and efficacy.",
-      },
-    ],
+    name: "Priya S.",
+    location: "Delhi",
+    quote:
+      "The roasted makhana is absolutely delicious! Finally a healthy snack that actually tastes amazing. Will order again!",
   },
   {
-    initials: "MMK",
-    name: "Mohit Manil Karki",
-    title: "Co-Founder & Director",
-    experience: "10+ Years",
-    expertise: [
-      {
-        area: "Finance & Investment Planning",
-        detail:
-          "Drives strategic capital allocation, investor relations, and financial modeling to ensure long-term fiscal resilience and optimal return on investment.",
-      },
-      {
-        area: "Brand Strategy & Marketing",
-        detail:
-          "Crafts compelling brand narratives and integrated marketing campaigns that establish Riveda Naturals as a premium, trusted name in natural wellness.",
-      },
-      {
-        area: "Team Management & HR",
-        detail:
-          "Champions talent acquisition, employee development, and organizational design—creating workplaces where people thrive and innovation flourishes.",
-      },
-      {
-        area: "Product Development & Innovation",
-        detail:
-          "Leads new product ideation and launch cycles, blending consumer insights with cutting-edge natural formulation science to introduce market-defining offerings.",
-      },
-      {
-        area: "Customer Relations & Business Partnerships",
-        detail:
-          "Nurtures high-value customer relationships and strategic business partnerships that expand reach, deepen loyalty, and accelerate brand equity.",
-      },
-      {
-        area: "Digital Growth & E-Commerce",
-        detail:
-          "Architects the brand's digital growth strategy—from performance marketing and SEO to D2C e-commerce platforms—scaling online revenue with precision.",
-      },
-    ],
+    name: "Rahul M.",
+    location: "Mumbai",
+    quote:
+      "Best quality moringa powder I've ever tried. You can tell it's pure and fresh. Highly recommend Riveda!",
+  },
+  {
+    name: "Anita K.",
+    location: "Bangalore",
+    quote:
+      "Ordered the turmeric and ginger powders. The aroma is incredible — nothing like store-bought. Truly natural!",
+  },
+  {
+    name: "Vikram T.",
+    location: "Lucknow",
+    quote:
+      "Fast delivery and premium packaging. The makhana varieties are top-notch. Great brand!",
+  },
+  {
+    name: "Sunita R.",
+    location: "Dehradun",
+    quote:
+      "The zeera powder has changed my cooking! So aromatic and pure. My whole family loves Riveda products.",
   },
 ];
 
-export default function App() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [buyNowOpen, setBuyNowOpen] = useState(false);
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactMessage, setContactMessage] = useState("");
-  const [contactSuccess, setContactSuccess] = useState(false);
-  const [cafeEmail, setCafeEmail] = useState("");
-
-  // Pack size selection per product (keyed by product id string)
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>(
-    () =>
-      Object.fromEntries(STATIC_PRODUCTS.map((p) => [p.id.toString(), "100g"])),
+/* ---------- Logo ---------- */
+function LogoMark() {
+  return (
+    <div className="flex items-center gap-2.5" style={{ cursor: "pointer" }}>
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: "50%",
+          background: "oklch(0.28 0.09 152)",
+          border: "1.5px solid oklch(0.64 0.10 75)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: "1.15rem",
+            fontWeight: 700,
+            color: "oklch(0.64 0.10 75)",
+            lineHeight: 1,
+          }}
+        >
+          R
+        </span>
+      </div>
+      <div>
+        <div
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: "0.95rem",
+            fontWeight: 700,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase" as const,
+            color: "oklch(0.28 0.09 152)",
+            lineHeight: 1.1,
+          }}
+        >
+          Riveda
+        </div>
+        <div
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "0.52rem",
+            fontWeight: 500,
+            letterSpacing: "0.28em",
+            textTransform: "uppercase" as const,
+            color: "oklch(0.64 0.10 75)",
+            lineHeight: 1,
+          }}
+        >
+          Naturals
+        </div>
+      </div>
+    </div>
   );
+}
 
-  const submitContact = useSubmitContactForm();
+/* ---------- Product Card ---------- */
+function ProductCard({
+  product,
+  onAddToCart,
+}: { product: Product; onAddToCart: (p: Product, s: PackSize) => void }) {
+  const [selected, setSelected] = useState<PackSize>("100g");
+  return (
+    <div className="product-card">
+      <div style={{ overflow: "hidden", position: "relative" }}>
+        {product.badge && (
+          <span
+            className="badge-new"
+            style={{ position: "absolute", top: 10, left: 10, zIndex: 2 }}
+          >
+            {product.badge}
+          </span>
+        )}
+        <img src={product.image} alt={product.name} loading="lazy" />
+      </div>
+      <div className="product-card-body">
+        <p className="product-card-name">{product.name}</p>
+        <div className="pack-selector">
+          {PACK_SIZES.map((size) => (
+            <button
+              type="button"
+              key={size}
+              className={`pack-btn${selected === size ? " active" : ""}`}
+              onClick={() => setSelected(size)}
+              data-ocid="product.toggle"
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+        <p className="product-card-price">₹{product.prices[selected]}</p>
+        <button
+          type="button"
+          className="btn-gold"
+          style={{ width: "100%", justifyContent: "center", marginTop: "auto" }}
+          onClick={() => onAddToCart(product, selected)}
+          data-ocid="product.primary_button"
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  );
+}
 
-  const products = STATIC_PRODUCTS;
-
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+/* ---------- Cart Drawer ---------- */
+function CartDrawer({
+  items,
+  onClose,
+  onUpdateQty,
+  onRemove,
+}: {
+  items: CartItem[];
+  onClose: () => void;
+  onUpdateQty: (id: number, pack: PackSize, delta: number) => void;
+  onRemove: (id: number, pack: PackSize) => void;
+}) {
+  const subtotal = items.reduce(
+    (s, i) => s + i.product.prices[i.pack] * i.qty,
     0,
   );
 
-  function addToCart(product: (typeof STATIC_PRODUCTS)[0]) {
-    const size = selectedSizes[product.id.toString()] ?? "100g";
-    const computedPrice = getPackPrice(product.price, size);
-    const displayName = `${product.name} (${size})`;
-    const cartKey = `${product.id.toString()}-${size}`;
+  return (
+    <div
+      className="cart-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (
+          (e.key === "Escape" || e.key === "Enter") &&
+          e.target === e.currentTarget
+        )
+          onClose();
+      }}
+      data-ocid="cart.modal"
+    >
+      <div className="cart-drawer">
+        <div className="cart-header">
+          <h2>Your Cart</h2>
+          <button
+            type="button"
+            className="cart-close"
+            onClick={onClose}
+            data-ocid="cart.close_button"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="cart-items">
+          {items.length === 0 ? (
+            <div className="cart-empty" data-ocid="cart.empty_state">
+              <p style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>🌿</p>
+              <p>Your cart is empty.</p>
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  marginTop: "0.4rem",
+                  opacity: 0.7,
+                }}
+              >
+                Start adding naturally good products!
+              </p>
+            </div>
+          ) : (
+            items.map((item, idx) => (
+              <div
+                key={`${item.product.id}-${item.pack}`}
+                className="cart-item"
+                data-ocid={`cart.item.${idx + 1}`}
+              >
+                <img src={item.product.image} alt={item.product.name} />
+                <div className="cart-item-info">
+                  <p className="cart-item-name">{item.product.name}</p>
+                  <p className="cart-item-pack">{item.pack}</p>
+                  <p className="cart-item-price">
+                    ₹{item.product.prices[item.pack] * item.qty}
+                  </p>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                  }}
+                >
+                  <div className="qty-controls">
+                    <button
+                      type="button"
+                      className="qty-btn"
+                      onClick={() =>
+                        onUpdateQty(item.product.id, item.pack, -1)
+                      }
+                      data-ocid={`cart.secondary_button.${idx + 1}`}
+                    >
+                      −
+                    </button>
+                    <span className="qty-count">{item.qty}</span>
+                    <button
+                      type="button"
+                      className="qty-btn"
+                      onClick={() => onUpdateQty(item.product.id, item.pack, 1)}
+                      data-ocid={`cart.secondary_button.${idx + 1}`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="cart-remove"
+                    onClick={() => onRemove(item.product.id, item.pack)}
+                    data-ocid={`cart.delete_button.${idx + 1}`}
+                  >
+                    🗑
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {items.length > 0 && (
+          <div className="cart-footer">
+            <div className="cart-subtotal">
+              <span>Subtotal</span>
+              <span>₹{subtotal}</span>
+            </div>
+            <button
+              type="button"
+              className="btn-gold"
+              style={{
+                width: "100%",
+                justifyContent: "center",
+                padding: "0.75rem",
+              }}
+              data-ocid="cart.submit_button"
+            >
+              Proceed to Checkout
+            </button>
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "0.7rem",
+                color: "oklch(0.65 0.03 85)",
+                marginTop: "0.6rem",
+                fontFamily: "'Poppins', sans-serif",
+              }}
+            >
+              Free shipping on orders above ₹499
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
+/* ---------- Main App ---------- */
+export default function App() {
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [formSent, setFormSent] = useState(false);
+
+  const totalQty = cartItems.reduce((s, i) => s + i.qty, 0);
+
+  function addToCart(product: Product, pack: PackSize) {
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.cartKey === cartKey);
-      if (existing) {
+      const existing = prev.find(
+        (i) => i.product.id === product.id && i.pack === pack,
+      );
+      if (existing)
         return prev.map((i) =>
-          i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1 } : i,
+          i.product.id === product.id && i.pack === pack
+            ? { ...i, qty: i.qty + 1 }
+            : i,
         );
-      }
-      return [
-        ...prev,
-        {
-          cartKey,
-          id: product.id,
-          name: displayName,
-          price: computedPrice,
-          imageUrl: product.imageUrl,
-          quantity: 1,
-        },
-      ];
+      return [...prev, { product, pack, qty: 1 }];
     });
-    toast.success(`${displayName} added to cart!`, {
-      description: `₹${computedPrice}`,
-    });
+    setCartOpen(true);
   }
 
-  function updateQty(cartKey: string, delta: number) {
+  function updateQty(id: number, pack: PackSize, delta: number) {
     setCartItems((prev) =>
       prev
         .map((i) =>
-          i.cartKey === cartKey ? { ...i, quantity: i.quantity + delta } : i,
+          i.product.id === id && i.pack === pack
+            ? { ...i, qty: i.qty + delta }
+            : i,
         )
-        .filter((i) => i.quantity > 0),
+        .filter((i) => i.qty > 0),
     );
   }
 
-  function removeFromCart(cartKey: string) {
-    setCartItems((prev) => prev.filter((i) => i.cartKey !== cartKey));
+  function removeItem(id: number, pack: PackSize) {
+    setCartItems((prev) =>
+      prev.filter((i) => !(i.product.id === id && i.pack === pack)),
+    );
   }
 
-  async function handleContactSubmit(e: React.FormEvent) {
+  function submitContact(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      await submitContact.mutateAsync({
-        name: contactName,
-        email: contactEmail,
-        message: contactMessage,
-      });
-      setContactSuccess(true);
-      setContactName("");
-      setContactEmail("");
-      setContactMessage("");
-    } catch {
-      // If backend fails, still show success for demo
-      setContactSuccess(true);
-      setContactName("");
-      setContactEmail("");
-      setContactMessage("");
-    }
-  }
-
-  function handleCafeNotify(e: React.FormEvent) {
-    e.preventDefault();
-    setCafeEmail("");
-    toast.success("We'll keep you posted!", {
-      description: "You're on the list for Riveda Cafe updates.",
-    });
+    setFormSent(true);
   }
 
   function scrollTo(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   }
 
+  const navLinks = ["Shop", "Makhana", "About", "Contact"];
+
   return (
-    <div className="min-h-screen font-poppins">
-      <Toaster position="top-right" />
+    <>
+      {/* ---- Announcement Bar ---- */}
+      <div className="announcement-bar" data-ocid="header.panel">
+        🌿 Free shipping on orders above ₹499 &nbsp;|&nbsp; Rooted in Nature
+        &nbsp;|&nbsp; 100% Natural Products
+      </div>
 
-      {/* ── STICKY HEADER ── */}
-      <header className="sticky top-0 z-50 bg-forest shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          {/* Logo + Tagline */}
-          <div className="flex flex-col items-start">
-            <img
-              src="/assets/generated/riveda-logo-transparent.dim_600x200.png"
-              alt="Riveda Naturals"
-              className="h-10 w-auto"
-            />
-            <p className="hidden md:block text-gold/80 text-[10px] italic tracking-[0.2em] font-light mt-0.5 pl-0.5">
-              Rooted in Nature
-            </p>
-          </div>
+      {/* ---- Header ---- */}
+      <header className="site-header" data-ocid="header.section">
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: "0 auto",
+            padding: "0.7rem 1.5rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
+          }}
+        >
+          <LogoMark />
 
-          {/* Nav */}
+          {/* Desktop Nav */}
           <nav
-            className="hidden md:flex items-center gap-8"
-            data-ocid="nav.panel"
+            className="desktop-nav"
+            style={{ display: "flex", gap: "2rem", alignItems: "center" }}
           >
-            <button
-              type="button"
-              onClick={() => scrollTo("hero")}
-              className="text-cream text-sm hover:text-gold transition-colors border-b-2 border-gold pb-0.5"
-              data-ocid="nav.home.link"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollTo("products")}
-              className="text-cream text-sm hover:text-gold transition-colors"
-              data-ocid="nav.skincare.link"
-            >
-              Products
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollTo("about")}
-              className="text-cream text-sm hover:text-gold transition-colors"
-              data-ocid="nav.about.link"
-            >
-              About
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollTo("founders")}
-              className="text-cream text-sm hover:text-gold transition-colors"
-              data-ocid="nav.founders.link"
-            >
-              Founders
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollTo("contact")}
-              className="text-cream text-sm hover:text-gold transition-colors"
-              data-ocid="nav.contact.link"
-            >
-              Contact
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollTo("coming-soon")}
-              className="text-gold text-sm hover:text-gold/80 transition-colors flex items-center gap-1.5 border border-gold/40 rounded-full px-3 py-1"
-              data-ocid="nav.cafe.link"
-            >
-              <Coffee className="w-3.5 h-3.5" />
-              Cafe
-            </button>
+            {navLinks.map((link) => (
+              <button
+                type="button"
+                key={link}
+                className="nav-link"
+                onClick={() => scrollTo(link.toLowerCase())}
+                data-ocid="nav.link"
+              >
+                {link.toUpperCase()}
+              </button>
+            ))}
           </nav>
 
-          {/* Icons */}
-          <div className="flex items-center gap-4">
+          {/* Right controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <button
               type="button"
-              className="text-cream hover:text-gold transition-colors"
-              data-ocid="header.search_input"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "oklch(0.28 0.09 152)",
+                padding: "0.25rem",
+              }}
+              aria-label="Search"
+              data-ocid="header.button"
             >
-              <Search className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              className="text-cream hover:text-gold transition-colors"
-              data-ocid="header.user.button"
-            >
-              <User className="w-5 h-5" />
-            </button>
-            {/* Cart Drawer */}
-            <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-              <SheetTrigger asChild>
-                <button
-                  type="button"
-                  className="relative text-cream hover:text-gold transition-colors"
-                  data-ocid="cart.open_modal_button"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-gold text-dark-green text-xs font-semibold rounded-full">
-                      {cartCount}
-                    </Badge>
-                  )}
-                </button>
-              </SheetTrigger>
-              <SheetContent
-                className="bg-forest text-cream border-l border-gold/30 w-80 sm:w-96 animate-slide-in"
-                data-ocid="cart.sheet"
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                role="img"
+                aria-label="Search icon"
               >
-                <SheetHeader>
-                  <SheetTitle className="font-playfair text-gold text-xl">
-                    Your Cart
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="mt-6 flex flex-col h-full">
-                  {cartItems.length === 0 ? (
-                    <div
-                      className="flex-1 flex flex-col items-center justify-center gap-3 text-cream/60"
-                      data-ocid="cart.empty_state"
-                    >
-                      <ShoppingCart className="w-12 h-12 opacity-30" />
-                      <p className="text-sm">Your cart is empty</p>
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-y-auto space-y-4">
-                      <AnimatePresence>
-                        {cartItems.map((item, i) => (
-                          <motion.div
-                            key={item.cartKey}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="flex items-center gap-3 bg-forest/80 border border-gold/20 rounded-lg p-3"
-                            data-ocid={`cart.item.${i + 1}`}
-                          >
-                            <img
-                              src={item.imageUrl}
-                              alt={item.name}
-                              className="w-14 h-14 rounded object-cover"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate text-cream">
-                                {item.name}
-                              </p>
-                              <p className="text-gold text-sm">₹{item.price}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <button
-                                  type="button"
-                                  onClick={() => updateQty(item.cartKey, -1)}
-                                  className="w-5 h-5 rounded-full border border-gold/40 flex items-center justify-center hover:bg-gold/10"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="text-xs text-cream">
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => updateQty(item.cartKey, 1)}
-                                  className="w-5 h-5 rounded-full border border-gold/40 flex items-center justify-center hover:bg-gold/10"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeFromCart(item.cartKey)}
-                              className="text-cream/40 hover:text-cream transition-colors"
-                              data-ocid={`cart.delete_button.${i + 1}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  )}
-                  {cartItems.length > 0 && (
-                    <div className="border-t border-gold/30 pt-4 mt-4 space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-cream/70">Total</span>
-                        <span className="text-gold font-semibold text-lg">
-                          ₹{cartTotal}
-                        </span>
-                      </div>
-                      <Button
-                        className="w-full bg-gold text-dark-green font-semibold uppercase tracking-wider hover:bg-gold-light rounded-full"
-                        onClick={() => {
-                          setCartOpen(false);
-                          setBuyNowOpen(true);
-                        }}
-                        data-ocid="cart.primary_button"
-                      >
-                        Checkout
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.5" y1="16.5" x2="22" y2="22" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "oklch(0.28 0.09 152)",
+                padding: "0.25rem",
+                position: "relative",
+              }}
+              aria-label="Cart"
+              data-ocid="cart.open_modal_button"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                role="img"
+                aria-label="Cart icon"
+              >
+                <path d="M6 2 L3 6 L3 20 Q3 22 5 22 L19 22 Q21 22 21 20 L21 6 L18 2 Z" />
+                <path d="M16 10 Q16 14 12 14 Q8 14 8 10" />
+              </svg>
+              {totalQty > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    background: "oklch(0.64 0.10 75)",
+                    color: "oklch(0.95 0.03 92)",
+                    fontSize: "0.6rem",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 600,
+                    width: 17,
+                    height: 17,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {totalQty}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="btn-gold"
+              style={{ fontSize: "0.65rem", padding: "0.45rem 1rem" }}
+              onClick={() => scrollTo("shop")}
+              data-ocid="nav.primary_button"
+            >
+              Shop Now
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "oklch(0.28 0.09 152)",
+                padding: "0.25rem",
+              }}
+              className="md:hidden"
+              aria-label="Menu"
+              data-ocid="nav.toggle"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                role="img"
+                aria-label="Menu icon"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* ── HERO ── */}
-      <section id="hero" className="bg-forest min-h-[85vh] flex items-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16">
-            {/* Left: image */}
-            <motion.div
-              initial={{ opacity: 0, x: -40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
-              className="relative"
-            >
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img
-                  src="/assets/generated/hero-makhana-products.dim_800x600.jpg"
-                  alt="Riveda Naturals lifestyle"
-                  className="w-full h-[500px] object-cover"
-                />
-                <div className="absolute inset-0 bg-forest/10 rounded-2xl" />
-              </div>
-              {/* Floating badge */}
-              <div className="absolute -bottom-4 -right-4 bg-gold text-dark-green rounded-2xl px-5 py-3 shadow-lg">
-                <p className="font-playfair text-xs uppercase tracking-widest">
-                  Pure &amp;
-                </p>
-                <p className="font-playfair text-lg font-bold">Natural</p>
-              </div>
-            </motion.div>
-
-            {/* Right: headline */}
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="space-y-6 text-cream"
-            >
-              <p className="text-gold text-sm uppercase tracking-[0.3em] font-medium">
-                Rooted in Nature
-              </p>
-              <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl text-gold leading-tight uppercase">
-                Luxury Care
-                <br />
-                <span className="text-cream">Inspired by</span>
-                <br />
-                Nature
-              </h1>
-              <p className="text-cream/80 text-base leading-relaxed max-w-md">
-                Pure, thoughtfully crafted products that support your
-                well-being—inside and out. Clean ingredients, gentle
-                formulations, rooted in sustainability.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={() => scrollTo("products")}
-                  className="bg-gold text-dark-green font-semibold uppercase tracking-widest px-8 py-3 rounded-full hover:bg-gold-light transition-all text-sm"
-                  data-ocid="hero.primary_button"
-                >
-                  Shop Collection
-                </Button>
-                <Button
-                  onClick={() => scrollTo("about")}
-                  variant="outline"
-                  className="border-gold text-gold bg-transparent hover:bg-gold/10 uppercase tracking-wider rounded-full text-sm"
-                  data-ocid="hero.secondary_button"
-                >
-                  Our Story
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRODUCT COLLECTION ── */}
-      <section id="products" className="bg-sand py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+      {/* ---- Mobile Menu ---- */}
+      {mobileMenuOpen && (
+        <div className="mobile-menu-content" data-ocid="nav.modal">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              position: "absolute",
+              top: "1.25rem",
+              right: "1.5rem",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "1.5rem",
+              color: "oklch(0.28 0.09 152)",
+            }}
+            data-ocid="nav.close_button"
           >
-            <p className="text-gold-border text-sm uppercase tracking-[0.3em] mb-2">
-              Explore
+            ✕
+          </button>
+          {navLinks.map((link) => (
+            <button
+              type="button"
+              key={link}
+              className="nav-link"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                scrollTo(link.toLowerCase());
+              }}
+              data-ocid="nav.link"
+            >
+              {link.toUpperCase()}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="btn-gold"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              scrollTo("shop");
+            }}
+            data-ocid="nav.primary_button"
+          >
+            Shop Now
+          </button>
+        </div>
+      )}
+
+      <main>
+        {/* ---- Hero ---- */}
+        <section className="hero-section" id="hero">
+          <img
+            src="/assets/generated/hero-flatlay.dim_1400x700.jpg"
+            alt="Riveda Naturals premium products flat lay"
+          />
+          <div className="hero-overlay" />
+          <div className="hero-content animate-fade-up">
+            <p
+              style={{
+                fontSize: "0.72rem",
+                letterSpacing: "0.35em",
+                color: "oklch(0.78 0.07 80)",
+                textTransform: "uppercase",
+                marginBottom: "0.75rem",
+                fontFamily: "'Poppins', sans-serif",
+              }}
+            >
+              Luxury Natural Care
             </p>
-            <h2 className="font-playfair text-4xl text-forest uppercase">
-              Our Collection
-            </h2>
-            <div className="w-16 h-0.5 bg-gold mx-auto mt-4" />
-          </motion.div>
-
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            data-ocid="products.list"
-          >
-            {products.map((product, i) => {
-              const idStr = product.id.toString();
-              const selectedSize = selectedSizes[idStr] ?? "100g";
-              const displayPrice = getPackPrice(product.price, selectedSize);
-
-              return (
-                <motion.div
-                  key={idStr}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-xl transition-all hover:-translate-y-1 group"
-                  data-ocid={`products.item.${i + 1}`}
-                >
-                  <div className="relative overflow-hidden h-56">
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-forest/0 group-hover:bg-forest/10 transition-colors" />
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-playfair text-lg text-forest font-semibold">
-                      {product.name}
-                    </h3>
-                    <p className="text-dark-green/60 text-xs mt-1 line-clamp-2">
-                      {product.description}
-                    </p>
-
-                    {/* Pack size selector */}
-                    <div className="flex gap-1.5 mt-3">
-                      {Object.keys(PACK_SIZES).map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() =>
-                            setSelectedSizes((prev) => ({
-                              ...prev,
-                              [idStr]: size,
-                            }))
-                          }
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                            selectedSize === size
-                              ? "bg-forest text-cream border-forest"
-                              : "bg-white text-forest border border-gold/50 hover:border-gold"
-                          }`}
-                          data-ocid={`products.toggle.${i + 1}`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-
-                    <p className="text-forest font-bold text-xl mt-3">
-                      ₹{displayPrice}
-                    </p>
-                    <div className="mt-4 space-y-2">
-                      <Button
-                        onClick={() => addToCart(product)}
-                        className="w-full bg-forest text-cream hover:bg-forest/90 uppercase tracking-wider text-xs font-semibold rounded-full py-2"
-                        data-ocid={`products.primary_button.${i + 1}`}
-                      >
-                        Add to Cart
-                      </Button>
-                      <Button
-                        onClick={() => setBuyNowOpen(true)}
-                        className="w-full bg-gold text-dark-green hover:bg-gold-light uppercase tracking-wider text-xs font-semibold rounded-full py-2"
-                        data-ocid={`products.secondary_button.${i + 1}`}
-                      >
-                        Buy Now
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── THE RIVEDA PROMISE ── */}
-      <section className="bg-[oklch(var(--sage-light))] py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h2 className="font-playfair text-4xl text-forest uppercase">
-              The Riveda Promise
-            </h2>
-            <div className="w-16 h-0.5 bg-gold mx-auto mt-4" />
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Heart className="w-8 h-8" />,
-                title: "Cruelty-Free",
-                desc: "Never tested on animals. Always kind, always ethical.",
-              },
-              {
-                icon: <Leaf className="w-8 h-8" />,
-                title: "100% Organic",
-                desc: "Certified organic ingredients, free from harsh chemicals.",
-              },
-              {
-                icon: <Star className="w-8 h-8" />,
-                title: "Made in India",
-                desc: "Proudly formulated and crafted in India with love.",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.15 }}
-                className="flex flex-col items-center text-center gap-4"
-                data-ocid={`promise.item.${i + 1}`}
+            <h1>Rooted in Nature</h1>
+            <p>Premium Makhana &amp; Natural Spice Powders</p>
+            <div
+              style={{
+                display: "flex",
+                gap: "1rem",
+                justifyContent: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                type="button"
+                className="btn-gold animate-fade-up delay-200"
+                style={{ padding: "0.8rem 2rem", fontSize: "0.78rem" }}
+                onClick={() => scrollTo("shop")}
+                data-ocid="hero.primary_button"
               >
-                <div className="w-20 h-20 rounded-full border-2 border-forest flex items-center justify-center text-forest bg-white/60">
-                  {item.icon}
-                </div>
-                <h3 className="font-playfair text-forest text-xl uppercase">
-                  {item.title}
-                </h3>
-                <p className="text-forest/70 text-sm max-w-xs">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── ABOUT US ── */}
-      <section id="about" className="bg-sand py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -40 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-              className="relative"
-            >
-              <img
-                src="https://images.unsplash.com/photo-1556228720-da54de49a834?w=600"
-                alt="Natural ingredients"
-                className="rounded-2xl w-full h-[450px] object-cover shadow-xl"
-              />
-              <div className="absolute -bottom-6 -left-6 bg-forest text-cream rounded-xl p-5 shadow-lg max-w-[200px] hidden lg:block">
-                <p className="font-playfair text-gold text-2xl font-bold">
-                  10+
-                </p>
-                <p className="text-xs text-cream/70 mt-1">
-                  Years of Natural Wellness Expertise
-                </p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="space-y-6"
-            >
-              <p className="text-gold-border text-sm uppercase tracking-[0.3em]">
+                Shop Now
+              </button>
+              <button
+                type="button"
+                className="btn-outline-forest animate-fade-up delay-300"
+                style={{
+                  padding: "0.8rem 2rem",
+                  fontSize: "0.78rem",
+                  borderColor: "oklch(0.90 0.03 90)",
+                  color: "oklch(0.90 0.03 90)",
+                }}
+                onClick={() => scrollTo("about")}
+                data-ocid="hero.secondary_button"
+              >
                 Our Story
-              </p>
-              <h2 className="font-playfair text-4xl text-forest uppercase">
-                About Us
-              </h2>
-              <div className="w-16 h-0.5 bg-gold" />
-              <p className="text-dark-green/80 leading-relaxed">
-                We believe in the healing power of nature. Our mission is to
-                bring you pure, thoughtfully crafted products that support your
-                well-being—inside and out.
-              </p>
-              <p className="text-dark-green/80 leading-relaxed">
-                From makhana snacks to wellness powders, everything we offer is
-                inspired by nature and backed by care. We're committed to using
-                clean, high-quality ingredients, free from harsh chemicals and
-                artificial additives.
-              </p>
-              <p className="text-dark-green/80 leading-relaxed">
-                Our formulations are gentle, effective, and designed to bring
-                balance to your daily routine. Rooted in sustainability, we
-                strive to tread lightly on the Earth while nurturing healthier
-                lifestyles.
-              </p>
-              <p className="text-dark-green font-semibold italic font-playfair text-lg">
-                "Rooted in Nature."
-              </p>
-            </motion.div>
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── MEET OUR CO-FOUNDERS ── */}
-      <section id="founders" className="bg-forest py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+        {/* ---- Trust Strip ---- */}
+        <section
+          style={{ background: "oklch(0.28 0.09 152)", padding: "1rem 1.5rem" }}
+        >
+          <div
+            style={{
+              maxWidth: 900,
+              margin: "0 auto",
+              display: "flex",
+              justifyContent: "space-around",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+            }}
           >
-            <p className="text-gold text-sm uppercase tracking-[0.35em] mb-3 font-medium">
-              Leadership
-            </p>
-            <h2 className="font-playfair text-4xl sm:text-5xl text-gold uppercase">
-              Meet Our Co-Founders
-            </h2>
-            <div className="w-16 h-0.5 bg-gold mx-auto mt-5" />
-            <p className="text-cream/70 mt-6 max-w-xl mx-auto text-sm leading-relaxed">
-              Behind Riveda Naturals is a leadership duo combining decades of
-              industry excellence—guiding the brand with passion, purpose, and
-              proven expertise.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            {FOUNDERS.map((founder, fi) => (
-              <motion.div
-                key={founder.name}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: fi * 0.15 }}
-                className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-gold/30"
-                data-ocid={`founders.item.${fi + 1}`}
+            {[
+              ["🌿", "100% Natural"],
+              ["🚚", "Free Shipping ₹499+"],
+              ["✅", "No Preservatives"],
+              ["📦", "Fresh Packed"],
+            ].map(([icon, text]) => (
+              <div
+                key={text}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.78rem",
+                  fontWeight: 500,
+                  color: "oklch(0.95 0.03 92)",
+                  letterSpacing: "0.05em",
+                }}
               >
-                {/* Card header band */}
-                <div className="bg-gradient-to-r from-forest to-dark-green px-8 pt-10 pb-6 flex flex-col items-center text-center relative">
-                  {/* Decorative corner lines */}
-                  <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-gold/40 rounded-tl-lg" />
-                  <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-gold/40 rounded-tr-lg" />
-
-                  {/* Avatar */}
-                  <div className="w-24 h-24 rounded-full border-4 border-gold bg-gold flex items-center justify-center shadow-lg mb-4">
-                    <span className="font-playfair text-forest text-2xl font-bold tracking-wide">
-                      {founder.initials}
-                    </span>
-                  </div>
-
-                  <h3 className="font-playfair text-2xl text-gold">
-                    {founder.name}
-                  </h3>
-                  <p className="text-cream/70 text-sm mt-1 uppercase tracking-widest">
-                    {founder.title}
-                  </p>
-
-                  {/* Experience badge */}
-                  <div className="mt-4 inline-flex items-center gap-2 bg-gold/20 border border-gold/40 text-gold text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full">
-                    <Star className="w-3 h-3" />
-                    {founder.experience} Experience
-                  </div>
-                </div>
-
-                {/* Expertise list */}
-                <div className="px-8 py-8 space-y-5">
-                  <p className="text-forest text-xs uppercase tracking-widest font-semibold border-b border-gold/20 pb-3">
-                    Areas of Expertise
-                  </p>
-                  {founder.expertise.map((exp, ei) => (
-                    <motion.div
-                      key={exp.area}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{
-                        duration: 0.4,
-                        delay: fi * 0.1 + ei * 0.06,
-                      }}
-                      className="flex gap-3"
-                    >
-                      <div className="mt-1 w-5 h-5 rounded-full bg-gold/15 border border-gold/40 flex items-center justify-center shrink-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gold" />
-                      </div>
-                      <div>
-                        <p className="text-forest font-semibold text-sm font-playfair">
-                          {exp.area}
-                        </p>
-                        <p className="text-dark-green/80 text-xs mt-0.5 leading-relaxed">
-                          {exp.detail}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
+                <span>{icon}</span>
+                <span>{text}</span>
+              </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── CONTACT ── */}
-      <section id="contact" className="bg-[oklch(var(--sage-light))] py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+        {/* ---- Curated Collections ---- */}
+        <section
+          id="shop"
+          style={{ padding: "4rem 1.5rem", maxWidth: 1280, margin: "0 auto" }}
+        >
+          <p className="section-subheading">Premium Selection</p>
+          <h2 className="section-heading">Curated Collections</h2>
+          <div className="section-divider" />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: "1.5rem",
+            }}
+            data-ocid="shop.list"
           >
-            <h2 className="font-playfair text-4xl text-forest uppercase">
-              Get in Touch
-            </h2>
-            <div className="w-16 h-0.5 bg-gold mx-auto mt-4" />
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <motion.div
-              initial={{ opacity: 0, x: -40 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-            >
-              <AnimatePresence mode="wait">
-                {contactSuccess ? (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center justify-center h-full gap-4 py-20"
-                    data-ocid="contact.success_state"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center">
-                      <Mail className="w-8 h-8 text-gold" />
-                    </div>
-                    <h3 className="font-playfair text-2xl text-forest">
-                      Message Sent!
-                    </h3>
-                    <p className="text-forest/70 text-center">
-                      Thank you for reaching out. We'll get back to you shortly.
-                    </p>
-                    <Button
-                      onClick={() => setContactSuccess(false)}
-                      className="bg-gold text-dark-green rounded-full uppercase tracking-wider text-sm"
-                      data-ocid="contact.secondary_button"
-                    >
-                      Send Another
-                    </Button>
-                  </motion.div>
-                ) : (
-                  <motion.form
-                    key="form"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onSubmit={handleContactSubmit}
-                    className="space-y-4"
-                    data-ocid="contact.panel"
-                  >
-                    <div>
-                      <Input
-                        placeholder="Your Name"
-                        value={contactName}
-                        onChange={(e) => setContactName(e.target.value)}
-                        required
-                        className="bg-white border border-gold/50 text-forest placeholder:text-forest/40 focus:border-gold rounded-lg"
-                        data-ocid="contact.input"
-                      />
-                    </div>
-                    <div>
-                      <Input
-                        type="email"
-                        placeholder="Your Email"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        required
-                        className="bg-white border border-gold/50 text-forest placeholder:text-forest/40 focus:border-gold rounded-lg"
-                        data-ocid="contact.search_input"
-                      />
-                    </div>
-                    <div>
-                      <Textarea
-                        placeholder="Your Message"
-                        value={contactMessage}
-                        onChange={(e) => setContactMessage(e.target.value)}
-                        required
-                        rows={5}
-                        className="bg-white border border-gold/50 text-forest placeholder:text-forest/40 focus:border-gold rounded-lg resize-none"
-                        data-ocid="contact.textarea"
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={submitContact.isPending}
-                      className="w-full bg-gold text-dark-green font-semibold uppercase tracking-widest rounded-full hover:bg-gold-light transition-all"
-                      data-ocid="contact.submit_button"
-                    >
-                      {submitContact.isPending ? "Sending..." : "Send Message"}
-                    </Button>
-                  </motion.form>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Contact Info */}
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="space-y-6"
-            >
-              <div className="space-y-4">
-                <h3 className="font-playfair text-2xl text-forest">
-                  Contact Information
-                </h3>
-                <div className="flex items-start gap-3 text-forest/80">
-                  <Phone className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                  <span>+91 78308 08000 / +91 98083 01011</span>
-                </div>
-                <div className="flex items-start gap-3 text-forest/80">
-                  <Mail className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                  <span>hello@rivedanaturals.com</span>
-                </div>
-                <div className="flex items-start gap-3 text-forest/80">
-                  <MapPin className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                  <span>Noida, Uttar Pradesh, India</span>
-                </div>
+            {PRODUCTS.map((product, idx) => (
+              <div key={product.id} data-ocid={`shop.item.${idx + 1}`}>
+                <ProductCard product={product} onAddToCart={addToCart} />
               </div>
-
-              {/* WhatsApp CTA */}
-              <a
-                href="https://wa.me/917830808000"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-gold text-dark-green font-semibold rounded-xl px-6 py-4 hover:bg-gold-light transition-all group shadow-lg"
-                data-ocid="contact.primary_button"
-              >
-                <MessageCircle className="w-6 h-6 shrink-0" />
-                <div>
-                  <p className="uppercase tracking-widest text-sm">
-                    Chat with us
-                  </p>
-                  <p className="text-xs font-normal opacity-70">
-                    Available on WhatsApp
-                  </p>
-                </div>
-              </a>
-
-              <div className="bg-white border border-gold/30 rounded-xl p-5">
-                <p className="text-forest font-playfair text-lg mb-2">
-                  Business Hours
-                </p>
-                <p className="text-forest/70 text-sm">
-                  Monday – Saturday: 9:00 AM – 6:00 PM
-                </p>
-                <p className="text-forest/70 text-sm">Sunday: Closed</p>
-              </div>
-            </motion.div>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── RIVEDA CAFE — COMING SOON ── */}
-      <section
-        id="coming-soon"
-        className="bg-forest py-24 relative overflow-hidden"
-      >
-        {/* Decorative background circles */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gold/5 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-gold/5 blur-3xl pointer-events-none" />
-
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="space-y-6"
+        {/* ---- The Riveda Promise ---- */}
+        <section
+          id="about"
+          className="promise-section"
+          style={{ padding: "0" }}
+        >
+          <div
+            style={{
+              maxWidth: 1280,
+              margin: "0 auto",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              minHeight: 420,
+            }}
           >
-            {/* Opening Soon badge */}
-            <div className="flex justify-center">
-              <span
-                className="inline-flex items-center gap-2 bg-gold/15 border border-gold/50 text-gold text-xs font-semibold uppercase tracking-[0.25em] px-5 py-2 rounded-full animate-pulse"
-                data-ocid="cafe.toggle"
-              >
-                <Coffee className="w-3.5 h-3.5" />
-                Opening Soon
-              </span>
-            </div>
-
-            {/* Label */}
-            <p className="text-gold/70 text-xs uppercase tracking-[0.4em] font-medium">
-              Coming Soon
-            </p>
-
-            {/* Main heading */}
-            <h2 className="font-playfair text-5xl sm:text-6xl text-gold leading-tight">
-              Riveda Cafe
-            </h2>
-
-            {/* Gold divider */}
-            <div className="flex items-center justify-center gap-4">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent to-gold/60" />
-              <Leaf className="w-4 h-4 text-gold/60" />
-              <div className="h-px w-16 bg-gradient-to-l from-transparent to-gold/60" />
-            </div>
-
-            {/* Teaser */}
-            <p className="text-cream/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
-              A premium cafe experience rooted in nature — wholesome snacks,
-              herbal brews, and natural wellness bites. Coming soon to a
-              location near you.
-            </p>
-
-            {/* Feature pills */}
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
-              {[
-                "Herbal Teas",
-                "Makhana Bites",
-                "Wellness Bowls",
-                "Natural Brews",
-              ].map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs text-gold/80 border border-gold/30 rounded-full px-4 py-1.5 bg-gold/5"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {/* Notify form */}
-            <motion.form
-              onSubmit={handleCafeNotify}
-              className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-              data-ocid="cafe.panel"
-            >
-              <Input
-                type="email"
-                placeholder="Enter your email address"
-                value={cafeEmail}
-                onChange={(e) => setCafeEmail(e.target.value)}
-                required
-                className="flex-1 bg-white/5 border border-gold/40 text-cream placeholder:text-cream/40 focus:border-gold rounded-full px-5 text-sm"
-                data-ocid="cafe.input"
+            <div style={{ overflow: "hidden", minHeight: 360 }}>
+              <img
+                src="/assets/generated/hero-flatlay.dim_1400x700.jpg"
+                alt="Riveda Naturals promise"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center",
+                  display: "block",
+                }}
               />
-              <Button
-                type="submit"
-                className="bg-gold text-dark-green font-semibold uppercase tracking-wider rounded-full px-6 text-sm hover:bg-gold-light transition-all shrink-0"
-                data-ocid="cafe.submit_button"
-              >
-                Notify Me
-              </Button>
-            </motion.form>
-
-            <p className="text-cream/40 text-xs mt-2">
-              Be the first to know when we open our doors.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer className="bg-dark-green py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            {/* Brand */}
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <img
-                  src="/assets/generated/riveda-logo-transparent.dim_600x200.png"
-                  alt="Riveda Naturals"
-                  className="h-8 w-auto"
-                />
-              </div>
-              <p className="text-gold/80 text-sm italic leading-relaxed">
-                Rooted in Nature
-              </p>
             </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="font-playfair text-gold uppercase text-sm tracking-widest mb-4">
-                Quick Links
-              </h4>
-              <div className="space-y-2">
+            <div
+              className="promise-text"
+              style={{
+                padding: "3.5rem 3rem",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.25em",
+                  textTransform: "uppercase" as const,
+                  color: "oklch(0.64 0.10 75)",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                Our Philosophy
+              </p>
+              <h2>The Riveda Promise</h2>
+              <p>
+                We believe that what goes into your body should come straight
+                from nature — unprocessed, unadulterated, and full of life.
+                Every product is sourced with intentionality from trusted farms
+                and artisan producers across India.
+              </p>
+              <p>
+                From the crisp lotus seeds of Bihar's wetlands to the sun-dried
+                spice powders of Kerala and Rajasthan, Riveda Naturals brings
+                you flavours and nutrition in their purest form.
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "0.5rem",
+                  marginTop: "0.5rem",
+                }}
+              >
                 {[
-                  "Home",
-                  "Products",
-                  "About",
-                  "Founders",
-                  "Contact",
-                  "Cafe",
-                ].map((link) => (
-                  <button
-                    type="button"
-                    key={link}
-                    onClick={() =>
-                      scrollTo(
-                        link === "Products"
-                          ? "products"
-                          : link === "Cafe"
-                            ? "coming-soon"
-                            : link.toLowerCase(),
-                      )
-                    }
-                    className="block text-cream/60 hover:text-gold text-sm transition-colors"
-                    data-ocid={`footer.${link.toLowerCase()}.link`}
-                  >
-                    {link}
-                  </button>
+                  "Farm Fresh",
+                  "No Additives",
+                  "Lab Tested",
+                  "Eco Packaged",
+                ].map((b) => (
+                  <span key={b} className="promise-badge">
+                    {b}
+                  </span>
                 ))}
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* Newsletter */}
-            <div>
-              <h4 className="font-playfair text-gold uppercase text-sm tracking-widest mb-4">
-                Newsletter
-              </h4>
-              <p className="text-cream/60 text-sm mb-3">
-                Get wellness tips and exclusive offers.
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Your email"
-                  className="bg-forest border border-gold/30 text-cream placeholder:text-cream/40 text-sm rounded-full flex-1"
-                  data-ocid="footer.input"
-                />
-                <Button
-                  className="bg-gold text-dark-green font-semibold rounded-full px-4 text-sm uppercase hover:bg-gold-light"
-                  data-ocid="footer.submit_button"
+        {/* ---- Bestsellers + Founders ---- */}
+        <section
+          style={{
+            padding: "4rem 1.5rem",
+            maxWidth: 1280,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "3rem",
+          }}
+        >
+          {/* Bestsellers */}
+          <div id="makhana">
+            <p className="section-subheading" style={{ textAlign: "left" }}>
+              Customer Favourites
+            </p>
+            <h2
+              className="section-heading"
+              style={{ textAlign: "left", fontSize: "1.4rem" }}
+            >
+              Bestsellers
+            </h2>
+            <div
+              className="section-divider"
+              style={{ margin: "0.75rem 0 1.5rem" }}
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "1rem",
+              }}
+            >
+              {PRODUCTS.slice(0, 3).map((product, idx) => (
+                <div
+                  key={product.id}
+                  className="product-card"
+                  data-ocid={`bestseller.item.${idx + 1}`}
                 >
-                  Join
-                </Button>
-              </div>
+                  <div style={{ overflow: "hidden" }}>
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      loading="lazy"
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="product-card-body"
+                    style={{ padding: "0.65rem" }}
+                  >
+                    <p
+                      className="product-card-name"
+                      style={{ fontSize: "0.78rem" }}
+                    >
+                      {product.name}
+                    </p>
+                    <p
+                      className="product-card-price"
+                      style={{ fontSize: "0.78rem" }}
+                    >
+                      from ₹{product.prices["100g"]}
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-gold"
+                      style={{
+                        fontSize: "0.6rem",
+                        padding: "0.35rem",
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                      onClick={() => addToCart(product, "100g")}
+                      data-ocid={`bestseller.primary_button.${idx + 1}`}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="border-t border-gold/20 pt-6 text-center">
-            <p className="text-cream/50 text-sm">
-              © {new Date().getFullYear()} Riveda Naturals | Premium Natural
-              Care. Built with ❤️ using{" "}
-              <a
-                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gold/70 hover:text-gold transition-colors"
+          {/* Founders */}
+          <div id="founders">
+            <p className="section-subheading" style={{ textAlign: "left" }}>
+              The People Behind
+            </p>
+            <h2
+              className="section-heading"
+              style={{ textAlign: "left", fontSize: "1.4rem" }}
+            >
+              Our Founders
+            </h2>
+            <div
+              className="section-divider"
+              style={{ margin: "0.75rem 0 1.5rem" }}
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
+              {[
+                {
+                  name: "Kumaar Nityanand",
+                  initial: "K",
+                  role: "Co-Founder & Director",
+                  desc: "15+ years of expertise in production, operations, supply chain, and team management. Drives Riveda's sourcing quality and operational excellence.",
+                },
+                {
+                  name: "Mohit Manil Karki",
+                  initial: "M",
+                  role: "Co-Founder & Director",
+                  desc: "10+ years in finance, business development, and strategic planning. Architect of Riveda's growth strategy and investor relations.",
+                },
+              ].map((f, idx) => (
+                <div
+                  key={f.name}
+                  className="founder-card"
+                  data-ocid={`founders.card.${idx + 1}`}
+                >
+                  <div className="founder-avatar">{f.initial}</div>
+                  <p className="founder-name">{f.name}</p>
+                  <p className="founder-role">{f.role}</p>
+                  <p className="founder-desc">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ---- Opening Soon ---- */}
+        <section
+          style={{
+            background: "oklch(0.28 0.09 152)",
+            padding: "3rem 1.5rem",
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.7rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase" as const,
+              color: "oklch(0.64 0.10 75)",
+              marginBottom: "0.5rem",
+            }}
+          >
+            Coming Soon
+          </p>
+          <h2
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(1.5rem, 3vw, 2rem)",
+              color: "oklch(0.95 0.03 92)",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase" as const,
+              marginBottom: "1rem",
+            }}
+          >
+            Riveda Cafe
+          </h2>
+          <p
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.9rem",
+              color: "oklch(0.80 0.03 90)",
+              maxWidth: 480,
+              margin: "0 auto 1.5rem",
+              lineHeight: 1.7,
+              fontWeight: 300,
+            }}
+          >
+            A curated dining experience rooted in pure, natural ingredients.
+            Coming to Dehradun, Uttarakhand.
+          </p>
+          <button
+            type="button"
+            className="btn-gold"
+            style={{ padding: "0.7rem 2rem", fontSize: "0.75rem" }}
+            data-ocid="cafe.primary_button"
+          >
+            Notify Me
+          </button>
+        </section>
+
+        {/* ---- Customer Reviews ---- */}
+        <section
+          id="reviews"
+          style={{
+            padding: "4rem 1.5rem",
+            background: "oklch(0.98 0.01 90)",
+          }}
+        >
+          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+            <p className="section-subheading">Verified Buyers</p>
+            <h2 className="section-heading">Customer Love</h2>
+            <div className="section-divider" />
+            {/* Overall rating summary */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1rem",
+                marginBottom: "2.5rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: "3rem",
+                  fontWeight: 700,
+                  color: "oklch(0.28 0.09 152)",
+                  lineHeight: 1,
+                }}
               >
-                caffeine.ai
-              </a>
+                4.9
+              </span>
+              <div>
+                <div
+                  style={{
+                    fontSize: "1.4rem",
+                    color: "oklch(0.64 0.10 75)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  ★★★★★
+                </div>
+                <p
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.75rem",
+                    color: "oklch(0.45 0.03 90)",
+                    marginTop: "0.2rem",
+                  }}
+                >
+                  Based on 200+ reviews
+                </p>
+              </div>
+            </div>
+            {/* Review cards */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                gap: "1.5rem",
+              }}
+              data-ocid="reviews.list"
+            >
+              {REVIEWS.map((review, idx) => (
+                <div
+                  key={review.name}
+                  data-ocid={`reviews.item.${idx + 1}`}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid oklch(0.88 0.03 90)",
+                    padding: "1.5rem",
+                    boxShadow: "0 2px 16px oklch(0.85 0.03 90 / 0.5)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  {/* Stars */}
+                  <div
+                    style={{
+                      fontSize: "1.1rem",
+                      color: "oklch(0.64 0.10 75)",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    ★★★★★
+                  </div>
+                  {/* Quote */}
+                  <p
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      color: "oklch(0.32 0.04 152)",
+                      lineHeight: 1.7,
+                      fontWeight: 300,
+                      fontStyle: "italic",
+                      flex: 1,
+                    }}
+                  >
+                    &ldquo;{review.quote}&rdquo;
+                  </p>
+                  {/* Reviewer */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.6rem",
+                      borderTop: "1px solid oklch(0.92 0.02 90)",
+                      paddingTop: "0.75rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        background: "oklch(0.28 0.09 152)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "'Playfair Display', serif",
+                          fontSize: "0.9rem",
+                          fontWeight: 700,
+                          color: "oklch(0.64 0.10 75)",
+                        }}
+                      >
+                        {review.name[0]}
+                      </span>
+                    </div>
+                    <div>
+                      <p
+                        style={{
+                          fontFamily: "'Poppins', sans-serif",
+                          fontSize: "0.82rem",
+                          fontWeight: 600,
+                          color: "oklch(0.28 0.09 152)",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {review.name}
+                      </p>
+                      <p
+                        style={{
+                          fontFamily: "'Poppins', sans-serif",
+                          fontSize: "0.7rem",
+                          color: "oklch(0.55 0.03 90)",
+                        }}
+                      >
+                        📍 {review.location}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ---- Contact ---- */}
+        <section
+          id="contact"
+          className="contact-section"
+          style={{ padding: "4rem 1.5rem" }}
+        >
+          <div style={{ maxWidth: 900, margin: "0 auto" }}>
+            <p className="section-subheading">Get in Touch</p>
+            <h2 className="section-heading">Contact Us</h2>
+            <div className="section-divider" />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "3rem",
+              }}
+            >
+              {/* Info */}
+              <div>
+                {[
+                  { icon: "📞", label: "Phone", value: "+91 9808301011" },
+                  { icon: "📞", label: "Alt Phone", value: "+91 7830808000" },
+                  {
+                    icon: "✉️",
+                    label: "Email",
+                    value: "hello@rivedanaturals.com",
+                  },
+                  {
+                    icon: "📍",
+                    label: "Location",
+                    value: "Dehradun, Uttarakhand, India",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="contact-info-item">
+                    <div className="contact-icon">{item.icon}</div>
+                    <div>
+                      <p className="contact-label">{item.label}</p>
+                      <p className="contact-value">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+                <a
+                  href="https://wa.me/919808301011"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-gold"
+                  style={{
+                    marginTop: "0.5rem",
+                    textDecoration: "none",
+                    padding: "0.65rem 1.5rem",
+                    fontSize: "0.75rem",
+                  }}
+                  data-ocid="contact.primary_button"
+                >
+                  💬 WhatsApp Us
+                </a>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={submitContact} data-ocid="contact.panel">
+                {formSent ? (
+                  <div
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      background: "oklch(0.95 0.03 92)",
+                      border: "1px solid oklch(0.64 0.10 75)",
+                    }}
+                    data-ocid="contact.success_state"
+                  >
+                    <p
+                      style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: "1.1rem",
+                        color: "oklch(0.28 0.09 152)",
+                        marginBottom: "0.5rem",
+                      }}
+                    >
+                      Thank You!
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.82rem",
+                        color: "oklch(0.47 0 0)",
+                      }}
+                    >
+                      We'll get back to you within 24 hours.
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={contactForm.name}
+                      onChange={(e) =>
+                        setContactForm((p) => ({ ...p, name: e.target.value }))
+                      }
+                      required
+                      data-ocid="contact.input"
+                      style={{
+                        padding: "0.75rem",
+                        border: "1px solid oklch(0.85 0.03 85)",
+                        background: "#fff",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.85rem",
+                        outline: "none",
+                        color: "oklch(0.14 0 0)",
+                        borderRadius: 0,
+                      }}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      value={contactForm.email}
+                      onChange={(e) =>
+                        setContactForm((p) => ({ ...p, email: e.target.value }))
+                      }
+                      required
+                      data-ocid="contact.input"
+                      style={{
+                        padding: "0.75rem",
+                        border: "1px solid oklch(0.85 0.03 85)",
+                        background: "#fff",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.85rem",
+                        outline: "none",
+                        color: "oklch(0.14 0 0)",
+                        borderRadius: 0,
+                      }}
+                    />
+                    <textarea
+                      placeholder="Your Message"
+                      value={contactForm.message}
+                      onChange={(e) =>
+                        setContactForm((p) => ({
+                          ...p,
+                          message: e.target.value,
+                        }))
+                      }
+                      required
+                      rows={4}
+                      data-ocid="contact.textarea"
+                      style={{
+                        padding: "0.75rem",
+                        border: "1px solid oklch(0.85 0.03 85)",
+                        background: "#fff",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.85rem",
+                        outline: "none",
+                        color: "oklch(0.14 0 0)",
+                        resize: "vertical",
+                        borderRadius: 0,
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="btn-gold"
+                      style={{
+                        padding: "0.75rem",
+                        fontSize: "0.75rem",
+                        justifyContent: "center",
+                      }}
+                      data-ocid="contact.submit_button"
+                    >
+                      Send Message
+                    </button>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ---- Footer ---- */}
+      <footer className="site-footer">
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: "0 auto",
+            padding: "3rem 1.5rem",
+            display: "grid",
+            gridTemplateColumns: "1.5fr 1fr 1fr 1.5fr",
+            gap: "2.5rem",
+          }}
+        >
+          {/* Brand */}
+          <div>
+            <div style={{ marginBottom: "1rem" }}>
+              <div
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase" as const,
+                  color: "oklch(0.64 0.10 75)",
+                  marginBottom: "0.3rem",
+                }}
+              >
+                RIVEDA NATURALS
+              </div>
+              <div
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase" as const,
+                  color: "oklch(0.75 0.03 90)",
+                }}
+              >
+                Rooted in Nature
+              </div>
+            </div>
+            <p
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                color: "oklch(0.72 0.03 90)",
+                lineHeight: 1.7,
+                fontWeight: 300,
+              }}
+            >
+              Premium natural makhana and spice powders sourced directly from
+              trusted Indian farms. Pure, unadulterated, and full of flavour.
             </p>
           </div>
+
+          {/* Quick Links */}
+          <div>
+            <p className="footer-heading">Quick Links</p>
+            {["Shop All", "Makhana", "Spices", "About Us", "Blog"].map((l) => (
+              <button
+                type="button"
+                key={l}
+                className="footer-link"
+                onClick={() => scrollTo(l.toLowerCase().replace(" ", ""))}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Info */}
+          <div>
+            <p className="footer-heading">Info</p>
+            {[
+              "Shipping Policy",
+              "Returns",
+              "Privacy Policy",
+              "Terms of Service",
+              "Contact",
+            ].map((l) => (
+              <button
+                type="button"
+                key={l}
+                className="footer-link"
+                onClick={() => scrollTo("contact")}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Subscribe */}
+          <div>
+            <p className="footer-heading">Stay Connected</p>
+            <p
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                color: "oklch(0.72 0.03 90)",
+                lineHeight: 1.7,
+                fontWeight: 300,
+                marginBottom: "1rem",
+              }}
+            >
+              Get exclusive offers and nature-inspired wellness tips.
+            </p>
+            {/* Instagram link */}
+            <a
+              href="https://www.instagram.com/rivedanaturals"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                color: "oklch(0.64 0.10 75)",
+                textDecoration: "none",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                fontWeight: 500,
+                marginBottom: "1rem",
+                transition: "opacity 0.2s",
+              }}
+              data-ocid="footer.link"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="oklch(0.64 0.10 75)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-label="Instagram"
+                role="img"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle
+                  cx="17.5"
+                  cy="6.5"
+                  r="1"
+                  fill="oklch(0.64 0.10 75)"
+                  stroke="none"
+                />
+              </svg>
+              Follow us on Instagram
+            </a>
+            <div style={{ display: "flex" }}>
+              <input
+                type="email"
+                placeholder="Enter email"
+                style={{
+                  flex: 1,
+                  padding: "0.6rem 0.75rem",
+                  background: "oklch(0.30 0.07 152)",
+                  border: "1px solid oklch(0.40 0.06 152)",
+                  borderRight: "none",
+                  color: "oklch(0.92 0.03 90)",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.78rem",
+                  outline: "none",
+                  borderRadius: 0,
+                }}
+                data-ocid="footer.input"
+              />
+              <button
+                type="button"
+                className="btn-gold"
+                style={{
+                  fontSize: "0.65rem",
+                  padding: "0.6rem 0.9rem",
+                  borderRadius: 0,
+                }}
+                data-ocid="footer.submit_button"
+              >
+                Subscribe
+              </button>
+            </div>
+            <div
+              style={{
+                marginTop: "1.25rem",
+                padding: "0.75rem",
+                border: "1px solid oklch(0.40 0.07 152)",
+                background: "oklch(0.22 0.08 152)",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.65rem",
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase" as const,
+                  color: "oklch(0.64 0.10 75)",
+                  marginBottom: "0.25rem",
+                }}
+              >
+                Opening Soon
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: "0.95rem",
+                  color: "oklch(0.92 0.03 90)",
+                  fontWeight: 600,
+                }}
+              >
+                Riveda Cafe
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.7rem",
+                  color: "oklch(0.68 0.03 88)",
+                  marginTop: "0.2rem",
+                }}
+              >
+                Dehradun, Uttarakhand
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          © {new Date().getFullYear()} Riveda Naturals. All rights
+          reserved.&nbsp;&nbsp;|&nbsp;&nbsp;
+          <a
+            href="https://www.instagram.com/rivedanaturals"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "oklch(0.64 0.10 75)", marginRight: "0.75rem" }}
+            data-ocid="footer.link"
+          >
+            Instagram
+          </a>
+          |&nbsp;&nbsp; Built with ❤️ using{" "}
+          <a
+            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            caffeine.ai
+          </a>
         </div>
       </footer>
 
-      {/* ── BUY NOW MODAL ── */}
-      <Dialog open={buyNowOpen} onOpenChange={setBuyNowOpen}>
-        <DialogContent
-          className="bg-forest border border-gold/30 text-cream max-w-sm"
-          data-ocid="buynow.dialog"
-        >
-          <DialogHeader>
-            <DialogTitle className="font-playfair text-gold text-xl">
-              Order Placed!
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="w-16 h-16 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center mx-auto">
-              <Star className="w-8 h-8 text-gold" />
-            </div>
-            <p className="text-cream/80 text-center">
-              Thank you for your order! We'll contact you shortly to confirm.
-            </p>
-            <Button
-              onClick={() => setBuyNowOpen(false)}
-              className="w-full bg-gold text-dark-green rounded-full uppercase tracking-wider font-semibold hover:bg-gold-light"
-              data-ocid="buynow.confirm_button"
-            >
-              Continue Shopping
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+      {/* ---- Cart Drawer ---- */}
+      {cartOpen && (
+        <CartDrawer
+          items={cartItems}
+          onClose={() => setCartOpen(false)}
+          onUpdateQty={updateQty}
+          onRemove={removeItem}
+        />
+      )}
+    </>
   );
 }
